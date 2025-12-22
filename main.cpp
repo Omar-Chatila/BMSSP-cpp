@@ -3,7 +3,6 @@
 #include "src/FibHeap.h"
 
 int main() {
-    FibHeap<int> fb;
     FibHeap<int> fib_heap;
     fib_heap.insert(8);
     fib_heap.insert(2);
@@ -24,5 +23,6 @@ int main() {
     fib_heap2.insert(5);
     fib_heap.merge(fib_heap2);
     std::cout << "min merged" << fib_heap.min() << std::endl;
+    while (!fib_heap.empty()) fib_heap.extract_min();
 
 }
