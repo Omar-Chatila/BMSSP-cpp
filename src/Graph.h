@@ -10,20 +10,6 @@
 
 #include "FibHeap.h"
 
-struct Vertex;
-
-struct DijkstraState {
-    double dist_ = std::numeric_limits<double>::infinity();
-    bool finalized_ = false;
-    Node<DijkstraState>* heap_node_ = nullptr;
-
-    bool operator<(const DijkstraState& ds) const {
-        return this->dist_ < ds.dist_;
-    }
-    bool operator==(const DijkstraState& ds) = delete;
-    bool operator>(const DijkstraState& ds) = delete;
-};
-
 struct Edge {
     uint64_t to_id_;
     double weight_;
@@ -42,9 +28,9 @@ struct Vertex {
 
 class Graph {
 private:
-
     std::deque<Vertex> vertices_;
     std::unordered_map<uint64_t, Vertex*> id_map_;
+
 public:
     explicit Graph();
     void add_vertex(uint64_t id);
