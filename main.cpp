@@ -1,8 +1,10 @@
 #include <iostream>
 
 #include "src/FibHeap.h"
+#include "src/Graph.h"
+#include <algorithm>
 
-int main() {
+void fib_heap_demo() {
     FibHeap<int> fib_heap;
     fib_heap.insert(8);
     fib_heap.insert(2);
@@ -24,5 +26,9 @@ int main() {
     fib_heap.merge(fib_heap2);
     std::cout << "min merged" << fib_heap.min() << std::endl;
     while (!fib_heap.empty()) fib_heap.extract_min();
+}
+
+int main() {
+    Graph g{};
 
 }

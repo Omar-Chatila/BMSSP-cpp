@@ -17,6 +17,7 @@ struct Node {
     explicit Node(const T& k) : key_(k) {
         left_ = right_ = this;
     }
+
     ~Node() = default;
 };
 
@@ -26,9 +27,8 @@ private:
     Node<T>* min_root_;
     size_t n_;
 
-    void consolidate();
-
     static void link(Node<T>* y, Node<T>* x);
+    void consolidate();
     void cut(Node<T>* x);
     void cascading_cut(Node<T>* y);
     void delete_subtree(Node<T>* x);
