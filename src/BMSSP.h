@@ -1,0 +1,8 @@
+#ifndef ALGO_SEMINAR_BMSSP_H
+#define ALGO_SEMINAR_BMSSP_H
+
+class BMSSP {
+};
+
+
+#endif //ALGO_SEMINAR_BMSSP_H

@@ -2,7 +2,6 @@
 
 #include "src/FibHeap.h"
 #include "src/Graph.h"
-#include <algorithm>
 
 void fib_heap_demo() {
     FibHeap<int> fib_heap;

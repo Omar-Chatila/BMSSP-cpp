@@ -1,14 +1,9 @@
-//
-// Created by omar on 22.12.25.
-//
-
 #pragma once
+
 #include <cstdint>
 #include <deque>
 #include <unordered_map>
 #include <vector>
-
-#include "FibHeap.h"
 
 struct Edge {
     uint64_t to_id_;
@@ -22,6 +17,10 @@ struct Vertex {
     std::vector<Edge> outgoing_edges_;
 
     explicit Vertex(const uint64_t id) : id_(id) {}
+
+    bool operator==(const Vertex &o) const {
+        return this->id_ == o.id_;
+    }
 };
 
 

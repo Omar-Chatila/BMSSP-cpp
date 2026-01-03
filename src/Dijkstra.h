@@ -4,7 +4,9 @@
 
 #ifndef ALGO_SEMINAR_DIJKSTRA_H
 #define ALGO_SEMINAR_DIJKSTRA_H
+
 #include "Graph.h"
+#include "FibHeap.h"
 
 struct HeapKey {
     double dist;
