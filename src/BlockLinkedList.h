@@ -2,6 +2,7 @@
 #define ALGO_SEMINAR_BLOCK_LINKED_LIST_H
 
 #include <algorithm>
+#include <limits>
 #include <list>
 #include <map>
 
@@ -218,8 +219,82 @@ public:
         }
     }
 
+    /*
+    Pull Return a subset S′ of keys where |S′| ≤ M associated with the smallest |S′| values and an upper
+    bound x that separates S′ from the remaining values in the data structure, in amortized O(|S′|) time.
+    Specifically, if there are no remaining values, x should be B. Otherwise, x should satisfy 
+    max(S′) < x ≤ min(D) where D is the set of elements in the data structure after the pull operation.
+    */
+    std::pair<std::vector<Pair>, double> pull() {
+        // To retrieve the smallest M values from D0 ∪ D1, we collect a sufficient prefix of blocks from D0 and D1 separately
+        std::vector<std::list<Block>::iterator> S0_blocks;
+        std::vector<std::list<Block>::iterator> S1_blocks;
 
+        size_t count0 = 0;
+        size_t count1 = 0;
+        /* That is, in D0 (D1) we start from the first block and stop collecting as long as we have collected all
+         * the remaining elements or the number of collected elements in S′0 (S′1) has reached M*/
+        for (auto it = D0_.begin(); it != D0_.end() && count0 < M_; ++it) {
+            S0_blocks.push_back(it);
+            count0 += it->elems_.size();
+        }
 
+        for (auto it = D1_.begin(); it != D1_.end() && count1 < M_; ++it) {
+            S1_blocks.push_back(it);
+            count1 += it->elems_.size();
+        }
+        /* if S′0 ∪ S′1 contains no more than M elements, it must contain all blocks in D0 ∪ D1,
+         * so we return all elements in S′0 ∪ S′1 as S′ and set x to the upper bound B,*/
+        if (count0 + count1 <= M_) {
+            std::vector<Pair> S;
+            for (const auto& block : S0_blocks) {
+                S.insert(S.end(), block->elems_.begin(), block->elems_.end());
+            }
+            for (const auto& block : S1_blocks) {
+                S.insert(S.end(), block->elems_.begin(), block->elems_.end());
+            }
+            for (const auto& [key, val] : S) {
+                erase(key_map_[key], key);
+            }
+            return {S, B_upper_};
+        }
+
+        // Otherwise, we want to make |S′| = M , and because the block sizes are kept at most M , the collecting process takes O(M ) time.
+        std::vector<const Pair*> candidates;       // S'
+        candidates.reserve(2 * M_);
+        for (const auto& block : S0_blocks) {
+            for (const auto& p : block->elems_) {
+                candidates.push_back(&p);
+            }
+        }
+        for (const auto& block : S1_blocks) {
+            for (const auto& p : block->elems_) {
+                candidates.push_back(&p);
+            }
+        }
+        // Now we know the smallest M elements must be contained in S′0 ∪ S′1 and can be identified from S′0 ∪ S′1 as S′ in O(M) time.
+        const auto m_th = candidates.begin() + M_;
+        std::ranges::nth_element(candidates, m_th,
+                                 [](const Pair* a, const Pair* b) { return a->value_ < b->value_; });
+
+        // Set returned value x to the smallest remaining value in D0 ∪ D1
+        double x = std::numeric_limits<double>::infinity();
+        for (size_t i = M_; i < candidates.size(); ++i)
+            x = std::min(x, candidates[i]->value_);
+
+        std::vector<Pair> result;
+        result.reserve(M_);
+        for (size_t i = 0; i < M_; ++i) {
+            result.push_back(*candidates[i]);
+        }
+        // Then we delete elements in S′ from D0 and D1, whose running time is amortized to insertion time
+        for (size_t i = 0; i < M_; ++i) {
+            const auto* element = candidates[i];
+            erase(key_map_[element->key_], element->key_);
+        }
+
+        return {result, x};
+    }
 };
 
 
