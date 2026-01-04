@@ -6,7 +6,6 @@
 #include <map>
 
 #include "Graph.h"
-#include "Utils.h"
 
 
 struct Pair {
@@ -45,6 +44,18 @@ class DequeueBlocks {
     size_t M_;
     double B_upper_;
 
+    static double find_median_value(const std::list<Pair>& elems) {
+        std::vector<double> vals;
+        vals.reserve(elems.size());
+        for (auto& p : elems)
+            vals.push_back(p.value_);
+
+        const auto mid = vals.begin() + vals.size() / 2;
+        std::ranges::nth_element(vals, mid);
+        return *mid;
+    }
+
+public:
     // Initialize(M, B)
     DequeueBlocks(const size_t M, const double B) : M_(M), B_upper_(B) {
         D1_.emplace_back(B);
@@ -162,17 +173,6 @@ class DequeueBlocks {
         }
     }
 
-    double find_median_value(const std::list<Pair>& elems) {
-        std::vector<double> vals;
-        vals.reserve(elems.size());
-        for (auto& p : elems)
-            vals.push_back(p.value_);
-
-        const auto mid = vals.begin() + vals.size() / 2;
-        std::ranges::nth_element(vals, mid);
-        return *mid;
-    }
-
     void batch_prepend(std::list<Pair>& batch, const double b_upper) {
         const size_t L = batch.size();
 
@@ -217,6 +217,8 @@ class DequeueBlocks {
             work.push_front(std::move(lower));
         }
     }
+
+
 
 };
 
