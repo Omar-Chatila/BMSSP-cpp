@@ -22,7 +22,7 @@ struct Block {
     std::list<Pair> elems_;
     double upper_;
 
-    explicit Block(const int B) : upper_(B) {}
+    explicit Block(const double B) : upper_(B) {}
 };
 
 struct KeyPos {
@@ -42,11 +42,11 @@ class DequeueBlocks {
     std::unordered_map<Vertex*, KeyPos> key_map_;
 
     // Params
-    int M_;
+    size_t M_;
     double B_upper_;
 
     // Initialize(M, B)
-    DequeueBlocks(const int M, const int B) : M_(M), B_upper_(B) {
+    DequeueBlocks(const size_t M, const double B) : M_(M), B_upper_(B) {
         D1_.emplace_back(B);
     }
 
@@ -108,10 +108,15 @@ class DequeueBlocks {
 
     void split(const std::list<Block>::iterator& block_it) {
         // First, we identify the median element within the block in O(M ) time
-        std::vector<Pair> temp(block_it->elems_.begin(), block_it->elems_.end());
+        std::vector<Pair*> temp;
+        temp.reserve(block_it->elems_.size());
+        for (auto& p : block_it->elems_)
+            temp.push_back(&p);
         const auto mid = temp.begin() + temp.size() / 2;
-        std::nth_element(temp.begin(), mid, temp.end());
-        const double median = mid->value_;
+        std::ranges::nth_element(temp, mid,
+                                 [](const Pair* a, const Pair* b) { return a->value_ < b->value_; });
+
+        double median = (*mid)->value_;
 
         // partitioning the elements into two new blocks each with at most ⌈M/2⌉ elements
         Block left(median);
@@ -156,6 +161,63 @@ class DequeueBlocks {
             key_map_[elem_it->key_] = { right_it, elem_it };
         }
     }
+
+    double find_median_value(const std::list<Pair>& elems) {
+        std::vector<double> vals;
+        vals.reserve(elems.size());
+        for (auto& p : elems)
+            vals.push_back(p.value_);
+
+        const auto mid = vals.begin() + vals.size() / 2;
+        std::ranges::nth_element(vals, mid);
+        return *mid;
+    }
+
+    void batch_prepend(std::list<Pair>& batch, const double b_upper) {
+        const size_t L = batch.size();
+
+        // hen L ≤ M , we simply create a new block for L and add it to the beginning of D0.
+        if (L <= M_) {
+            Block b{b_upper};
+            b.elems_.splice(b.elems_.end(), batch);
+            D0_.emplace_front(std::move(b));
+            return;
+        }
+
+        // Otherwise, we create O(L/M ) new blocks in the beginning of D0, each containing at most ⌈M/2⌉ element
+        std::list<std::list<Pair>> work;
+        work.push_back(std::move(batch));
+
+        // We can achieve this by repeatedly taking medians which completes in O(L log(L/M )) time.
+        const size_t target = (M_ + 1) / 2;
+        while (!work.empty()) {
+            auto curr = std::move(work.front());
+            work.pop_front();
+
+            if (curr.size() <= target) {
+                Block b{b_upper};
+                b.elems_.splice(b.elems_.end(), curr);
+                D0_.emplace_front(std::move(b));
+                continue;
+            }
+
+            // split at median
+            const double median = find_median_value(curr);
+
+            std::list<Pair> lower, upper;
+            for (auto it = curr.begin(); it != curr.end(); ) {
+                auto cur = it++;
+                if (cur->value_ < median)
+                    lower.splice(lower.end(), curr, cur);
+                else
+                    upper.splice(upper.end(), curr, cur);
+            }
+
+            work.push_front(std::move(upper));
+            work.push_front(std::move(lower));
+        }
+    }
+
 };
 
 
