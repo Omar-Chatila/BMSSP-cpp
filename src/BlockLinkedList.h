@@ -1,15 +1,21 @@
 #ifndef ALGO_SEMINAR_BLOCK_LINKED_LIST_H
 #define ALGO_SEMINAR_BLOCK_LINKED_LIST_H
 
+#include <algorithm>
 #include <list>
 #include <map>
 
 #include "Graph.h"
+#include "Utils.h"
 
 
 struct Pair {
     Vertex* key_;
     double value_;
+
+    bool operator<(const Pair& o) const {
+        return this->value_ < o.value_;
+    }
 };
 
 struct Block {
@@ -49,7 +55,7 @@ class DequeueBlocks {
         // To insert a key/value pair ⟨a, b⟩, we first check the existence of its key a
         if (key_map_.contains(a)) {
             // If a already exists, we delete original pair ⟨a, b′⟩ and insert new pair ⟨a, b⟩ only when b < b′.
-            auto& pos = key_map_[a];
+            const auto& pos = key_map_[a];
             const double old_b = pos.elem_->value_;
             if (b >= old_b) return;
             erase(pos, a);
@@ -100,11 +106,56 @@ class DequeueBlocks {
         }
     }
 
-    void split(std::list<Block>::iterator& block_it) {
-        return;
+    void split(const std::list<Block>::iterator& block_it) {
+        // First, we identify the median element within the block in O(M ) time
+        std::vector<Pair> temp(block_it->elems_.begin(), block_it->elems_.end());
+        const auto mid = temp.begin() + temp.size() / 2;
+        std::nth_element(temp.begin(), mid, temp.end());
+        const double median = mid->value_;
+
+        // partitioning the elements into two new blocks each with at most ⌈M/2⌉ elements
+        Block left(median);
+        Block right(block_it->upper_);
+
+        // — elements smaller than the median are placed in the first block, while the rest are placed in the second.
+        for (auto it = block_it->elems_.begin(); it != block_it->elems_.end(); ) {
+            auto curr = it++;
+            if (curr->value_ < median) {
+                left.elems_.splice(left.elems_.end(), block_it->elems_, curr);
+            } else {
+                right.elems_.splice(right.elems_.end(), block_it->elems_, curr);
+            }
+        }
+
+        /* After the split, we make the appropriate changes in the binary search tree of upper bounds
+         * in O(max{1, log(N/M )}) time. */
+
+        // remove old block from tree and list
+        const auto old_upper = block_it->upper_;
+        const auto tree_it = D1_tree_.find(old_upper);
+        if (tree_it != D1_tree_.end() && tree_it->second == block_it) {
+            D1_tree_.erase(tree_it);
+        }
+
+        // replace old block pos
+        const auto pos = D1_.erase(block_it);
+
+        // insert new blocks
+        auto right_it = D1_.insert(pos, std::move(right));
+        auto left_it = D1_.insert(pos, std::move(left));
+
+        // update tree
+        D1_tree_.emplace(left_it->upper_, left_it);
+        D1_tree_.emplace(right_it->upper_, right_it);
+
+        // update key-map
+        for (auto elem_it = left_it->elems_.begin(); elem_it != left_it->elems_.end(); ++elem_it) {
+            key_map_[elem_it->key_] = { left_it, elem_it };
+        }
+        for (auto elem_it = right_it->elems_.begin(); elem_it != right_it->elems_.end(); ++elem_it) {
+            key_map_[elem_it->key_] = { right_it, elem_it };
+        }
     }
-
-
 };
 
 
