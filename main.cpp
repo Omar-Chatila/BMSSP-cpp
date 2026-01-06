@@ -2,8 +2,8 @@
 #include <random>
 
 #include "BlockLinkedList.h"
-#include "src/FibHeap.h"
-#include "src/Graph.h"
+#include "FibHeap.h"
+#include "Graph.h"
 
 void fib_heap_demo() {
     FibHeap<int> fib_heap;

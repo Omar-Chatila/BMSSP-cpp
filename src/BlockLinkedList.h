@@ -67,7 +67,7 @@ public:
     }
 
     // Insert(a, b)
-    void insert(Vertex* a, const double b) {
+    void insert(const Vertex* a, const double b) {
         // To insert a key/value pair ⟨a, b⟩, we first check the existence of its key a
         if (key_map_.contains(a)) {
             // If a already exists, we delete original pair ⟨a, b′⟩ and insert new pair ⟨a, b⟩ only when b < b′.
@@ -298,6 +298,10 @@ public:
         }
 
         return {result, x};
+    }
+
+    bool empty() const {
+        return D0_.empty() && D1_.empty();
     }
 };
 

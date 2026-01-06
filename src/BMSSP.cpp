@@ -124,3 +124,79 @@ std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B) const {
     }
     return {B_prime, U};
 }
+
+std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
+    if (l == 0) {
+        return base_case(S[0], B);
+    }
+    std::unordered_map<const Vertex*, double> dist;
+    for (const auto& [vtx, v_dist] : S) {
+        dist[vtx] = v_dist;
+    }
+    auto [P, W] = find_pivots(S, B);
+    const size_t M = static_cast<size_t>(std::pow(2, (l - 1) * t_));
+    DequeueBlocks D(M, B);
+    double B0_prime = std::numeric_limits<double>::infinity();
+    for (const auto& [vtx, dist_v] : P) {
+        D.insert(vtx, dist_v);
+        B0_prime = std::min(B0_prime, dist_v);
+    }
+    size_t i = 0;
+    VertexSet U;
+    double B_prime = B;
+    while (U.size() < k_ * std::pow(2, l * t_) and !D.empty()) {
+        ++i;
+        auto [Si, Bi] = D.pull();
+        auto [Bi_prime, Ui] = bmssp(l - 1, Bi, Si);
+        B_prime = std::min(B_prime, Bi_prime);
+        U.insert(U.end(), Ui.begin(), Ui.end());
+        VertexSet K;
+        for (auto [u, du] : Ui) {
+            for (auto [v_id, w_uv] : u->outgoing_edges_) {
+                const Vertex *v = graph_.get_vertex(v_id);
+                const double cand = du + w_uv;
+                if (!dist.contains(v) or cand < dist[v]) {
+                    dist[v] = cand;
+                    if (cand >= Bi and cand < B) {
+                        D.insert(v, cand);
+                    } else if (cand >= Bi_prime and cand < Bi) {
+                        K.push_back({v, cand});
+                    }
+                }
+            }
+            for (auto [x, dx] : Si) {
+                if (dx >= Bi_prime and dx < Bi) {
+                    K.push_back({x, dx});
+                }
+            }
+        }
+        auto batch = std::list<Pair>(K.begin(), K.end());
+        for (auto& [x, dx] : Si) {
+            if (dx >= Bi_prime && dx < Bi) {
+                batch.push_back({x, dx});
+            }
+        }
+        D.batch_prepend(batch, Bi);
+    }
+    VertexSet result = U;
+    for (auto& [vtx, dv] : W) {
+        if (dist.contains(vtx) && dist[vtx] < B_prime) {
+            result.push_back({vtx, dist[vtx]});
+        }
+    }
+    return {B_prime, result};
+}
+
+std::unordered_map<const Vertex *, double> BMSSP::run() const {
+    const int l = std::ceil(std::log(graph_.get_vertices().size()) / t_);
+    VertexSet S;
+    S.push_back({source_, 0.0});
+    constexpr double B = std::numeric_limits<double>::infinity();
+    auto [_, v_set] = bmssp(l, B, S);
+ 
+    std::unordered_map<const Vertex*, double> result;
+    for (const auto& [vtx, v_dist] : v_set) {
+        result[vtx] = v_dist;
+    }
+    return result;
+}

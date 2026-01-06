@@ -4,7 +4,6 @@
 #pragma once
 
 #include "FibHeap.h"
-#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 #include <vector>

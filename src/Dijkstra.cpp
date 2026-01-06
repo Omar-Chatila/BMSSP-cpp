@@ -54,3 +54,5 @@ std::unordered_map<const Vertex *, double> Dijkstra::run() {
     }
     return result;
 }
+
+
