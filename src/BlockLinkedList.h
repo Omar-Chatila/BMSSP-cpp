@@ -10,12 +10,14 @@
 
 
 struct Pair {
-    Vertex* key_;
+    const Vertex* key_;
     double value_;
 
     bool operator<(const Pair& o) const {
         return this->value_ < o.value_;
     }
+
+    Pair(const Vertex* k, const double v) : key_(k), value_(v){}
 };
 
 struct Block {
@@ -39,7 +41,7 @@ class DequeueBlocks {
     std::multimap<double, std::list<Block>::iterator> D1_tree_;     // Red-Black Tree
 
     // Key bookkeeping
-    std::unordered_map<Vertex*, KeyPos> key_map_;
+    std::unordered_map<const Vertex*, KeyPos> key_map_;
 
     // Params
     size_t M_;
@@ -60,6 +62,8 @@ public:
     // Initialize(M, B)
     DequeueBlocks(const size_t M, const double B) : M_(M), B_upper_(B) {
         D1_.emplace_back(B);
+        auto it = D1_.begin();
+        D1_tree_.emplace(B, it);
     }
 
     // Insert(a, b)
@@ -74,7 +78,7 @@ public:
         }
         // We first locate the appropriate block for it, which is the block with the smallest upper bound greater than or equal to b,
         const auto it = D1_tree_.lower_bound(b);
-        auto block_it = it->second;
+        auto block_it = it == D1_tree_.end() ? std::prev(D1_.end()) : it->second;
 
         // ⟨a, b⟩ is then added to the corresponding linked list in O(1) time
         block_it->elems_.push_back({a, b});
@@ -102,7 +106,7 @@ public:
     }
 
     // Delete(a, b)
-    void erase(const KeyPos& pos, Vertex* key) {
+    void erase(const KeyPos& pos, const Vertex* key) {
         const auto block_it = pos.block_;
         const auto elem_it  = pos.elem_;
         // To delete the key/value pair ⟨a, b⟩, we remove it directly from the linked list
@@ -239,9 +243,9 @@ public:
             count0 += it->elems_.size();
         }
 
-        for (auto it = D1_.begin(); it != D1_.end() && count1 < M_; ++it) {
-            S1_blocks.push_back(it);
-            count1 += it->elems_.size();
+        for (auto it = D1_tree_.begin(); it != D1_tree_.end() && count1 < M_; ++it) {
+            S1_blocks.push_back(it->second);
+            count1 += it->second->elems_.size();
         }
         /* if S′0 ∪ S′1 contains no more than M elements, it must contain all blocks in D0 ∪ D1,
          * so we return all elements in S′0 ∪ S′1 as S′ and set x to the upper bound B,*/
@@ -259,7 +263,7 @@ public:
             return {S, B_upper_};
         }
 
-        // Otherwise, we want to make |S′| = M , and because the block sizes are kept at most M , the collecting process takes O(M ) time.
+        // Otherwise, we want to make |S′| = M, and because the block sizes are kept at most M, the collecting process takes O(M) time.
         std::vector<const Pair*> candidates;       // S'
         candidates.reserve(2 * M_);
         for (const auto& block : S0_blocks) {

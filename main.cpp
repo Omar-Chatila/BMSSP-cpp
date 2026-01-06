@@ -1,5 +1,7 @@
 #include <iostream>
+#include <random>
 
+#include "BlockLinkedList.h"
 #include "src/FibHeap.h"
 #include "src/Graph.h"
 
@@ -27,7 +29,34 @@ void fib_heap_demo() {
     while (!fib_heap.empty()) fib_heap.extract_min();
 }
 
+void block_list_demo() {
+    int n = 1000;
+    DequeueBlocks D(100, 120);
+    std::vector<Vertex*> vertices;
+    vertices.reserve(n);
+
+    // Define range
+    int min = 1;
+    int max = 200;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> distrib(min, max);
+
+    for (int i = 0; i < 1000; ++i) {
+        const int randomValue = distrib(gen);
+        std::cout << randomValue << std::endl;
+        vertices.push_back(new Vertex(i));
+        D.insert(vertices[i], randomValue);
+    }
+
+    auto [pulled, bound] = D.pull();
+    std::cout << "bound " << bound << "\n";
+    for (const auto& [vert, val] : pulled) {
+        std::cout << vert->id_ << " : " << val << "\n";
+    }
+}
+
 int main() {
-    Graph g{};
 
 }
