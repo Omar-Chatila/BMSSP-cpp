@@ -12,6 +12,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 
+find_package(benchmark REQUIRED)
+
 # ======================
 # Header-only library
 # ======================
@@ -19,6 +21,7 @@ add_library(algo_seminar INTERFACE)
 
 target_include_directories(algo_seminar
         INTERFACE
+        benchmark/include/benchmark/
         ${PROJECT_SOURCE_DIR}/src
 )
 
@@ -39,6 +42,7 @@ if (OpenMP_CXX_FOUND)
     target_link_libraries(algo_seminar
             INTERFACE
             OpenMP::OpenMP_CXX
+            benchmark::benchmark
     )
 endif()
 
