@@ -28,6 +28,7 @@ target_sources(algo_seminar INTERFACE
         src/FibHeap.tpp
         src/Graph.cpp
         src/Dijkstra.cpp
+        src/BMSSP.cpp
 )
 
 # ======================

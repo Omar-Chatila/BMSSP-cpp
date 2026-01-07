@@ -3,9 +3,7 @@
 //
 #include "Graph.h"
 
-Graph::Graph() {
-
-}
+Graph::Graph() = default;
 
 void Graph::add_vertex(const uint64_t id) {
     vertices_.emplace_back(id);

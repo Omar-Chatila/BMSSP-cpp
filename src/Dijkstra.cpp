@@ -1,7 +1,7 @@
 #include "Dijkstra.h"
 #include "FibHeap.h"
 
-Dijkstra::Dijkstra(Graph& graph, Vertex* src) : graph_(graph), source_(src) {
+Dijkstra::Dijkstra(Graph& graph, const Vertex* src) : graph_(graph), source_(src) {
     reset_states();
 }
 

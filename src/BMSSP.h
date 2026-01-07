@@ -8,19 +8,19 @@ using VertexSet = std::vector<Pair>;
 class BMSSP {
 private:
     Graph& graph_;
-    Vertex* source_;
+    const Vertex* source_;
 
     size_t k_;
     size_t t_;
-    std::pair<VertexSet, VertexSet> find_pivots(const VertexSet& S, double B) const;
+    [[nodiscard]] std::pair<VertexSet, VertexSet> find_pivots(const VertexSet& S, double B) const;
 
-    std::pair<double, VertexSet> base_case(Pair& S, const double B) const;
+    std::pair<double, VertexSet> base_case(Pair& S, double B) const;
 
     std::pair<double, VertexSet> bmssp(int l, double B, VertexSet& S) const;
 public:
-    explicit BMSSP(Graph& graph, Vertex* src);
+    explicit BMSSP(Graph& graph, const Vertex* src);
 
-    std::unordered_map<const Vertex *, double> run() const;
+    [[nodiscard]] std::unordered_map<const Vertex *, double> run() const;
 };
 
 

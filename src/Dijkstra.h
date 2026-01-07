@@ -32,11 +32,11 @@ struct DijkstraState {
 class Dijkstra {
 private:
     Graph& graph_;
-    Vertex* source_;
+    const Vertex *source_;
     std::unordered_map<const Vertex* , DijkstraState> states_;
 public:
     void reset_states();
-    explicit Dijkstra(Graph& graph, Vertex* src);
+    explicit Dijkstra(Graph& graph, const Vertex* src);
     std::unordered_map<const Vertex* , double> run();
 };
 

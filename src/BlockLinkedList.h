@@ -20,11 +20,14 @@ struct Pair {
     Pair(const Vertex* k, const double v) : key_(k), value_(v){}
 };
 
+enum class BlockOwner {D0, D1};
+
 struct Block {
     std::list<Pair> elems_;
     double upper_;
+    BlockOwner owner_;
 
-    explicit Block(const double B) : upper_(B) {}
+    explicit Block(const double B, const BlockOwner owner) : upper_(B), owner_(owner) {}
 };
 
 struct KeyPos {
@@ -61,7 +64,7 @@ class DequeueBlocks {
 public:
     // Initialize(M, B)
     DequeueBlocks(const size_t M, const double B) : M_(M), B_upper_(B) {
-        D1_.emplace_back(B);
+        D1_.emplace_back(B, BlockOwner::D1);
         auto it = D1_.begin();
         D1_tree_.emplace(B, it);
     }
@@ -81,7 +84,7 @@ public:
         auto block_it = it == D1_tree_.end() ? std::prev(D1_.end()) : it->second;
 
         // ⟨a, b⟩ is then added to the corresponding linked list in O(1) time
-        block_it->elems_.push_back({a, b});
+        block_it->elems_.emplace_back(a, b);
 
         // update upper bound
         if (b > block_it->upper_) {
@@ -115,10 +118,14 @@ public:
 
         // if a block in D1 becomes empty after deletion, we need to remove its upper bound in the binary search tree
         if (block_it->elems_.empty()) {
-            const auto tree_it = D1_tree_.find(block_it->upper_);
-            if (tree_it != D1_tree_.end() && tree_it->second == block_it)
-                D1_tree_.erase(tree_it);
-            D1_.erase(block_it);
+            if (block_it->owner_ == BlockOwner::D1) {
+                auto tree_it = D1_tree_.find(block_it->upper_);
+                if (tree_it != D1_tree_.end() && tree_it->second == block_it)
+                    D1_tree_.erase(tree_it);
+                D1_.erase(block_it);
+            } else {
+                D0_.erase(block_it);
+            }
         }
     }
 
@@ -135,8 +142,8 @@ public:
         double median = (*mid)->value_;
 
         // partitioning the elements into two new blocks each with at most ⌈M/2⌉ elements
-        Block left(median);
-        Block right(block_it->upper_);
+        Block left(median, BlockOwner::D1);
+        Block right(block_it->upper_, BlockOwner::D1);
 
         // — elements smaller than the median are placed in the first block, while the rest are placed in the second.
         for (auto it = block_it->elems_.begin(); it != block_it->elems_.end(); ) {
@@ -183,9 +190,13 @@ public:
 
         // hen L ≤ M , we simply create a new block for L and add it to the beginning of D0.
         if (L <= M_) {
-            Block b{b_upper};
+            Block b{b_upper, BlockOwner::D0};
             b.elems_.splice(b.elems_.end(), batch);
             D0_.emplace_front(std::move(b));
+            const auto block_it = D0_.begin();
+            for (auto it = block_it->elems_.begin(); it != block_it->elems_.end(); ++it) {
+                key_map_[it->key_] = { block_it, it };
+            }
             return;
         }
 
@@ -200,9 +211,13 @@ public:
             work.pop_front();
 
             if (curr.size() <= target) {
-                Block b{b_upper};
+                Block b{b_upper, BlockOwner::D0};
                 b.elems_.splice(b.elems_.end(), curr);
                 D0_.emplace_front(std::move(b));
+                auto block_it = D0_.begin();
+                for (auto it = block_it->elems_.begin(); it != block_it->elems_.end(); ++it) {
+                    key_map_[it->key_] = { block_it, it };
+                }
                 continue;
             }
 
