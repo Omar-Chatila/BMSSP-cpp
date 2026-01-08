@@ -70,6 +70,7 @@ void block_list_demo() {
 
 void dijkstra_vs_bmssp_demo() {
     /*
+     * http://andrewd.ces.clemson.edu/courses/cpsc212/f06/labs/lab09.html
      * Expected Output:
      *   Shortest path from 1 to 1 is 0
      *   Shortest path from 1 to 2 is 3
@@ -134,6 +135,8 @@ void time_dijkstra(Graph& g, std::vector<const Vertex*>& srcs) {
 }
 
 int main() {
+    dijkstra_vs_bmssp_demo();
+    return 0;
     auto graph = graph_from_csv("/home/omar/BMSSP/resources/soc-sign-bitcoinotc.csv");
     auto srcs = get_start_vertices(graph, 10);
     std::cout << srcs.size() << std::endl;

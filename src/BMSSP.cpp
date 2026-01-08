@@ -87,12 +87,11 @@ std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B) const {
 
     std::priority_queue<Pair, VertexSet, std::function<bool(const Pair&, const Pair&)>> H(
         [](const Pair& a, const Pair& b) {
-                return b < a;
-            });
+            return b < a;
+        });
     H.emplace(v_ptr, v_dist);
 
-    VertexSet U_0;
-    double B_prime = B;
+    VertexSet U;
 
     while (!H.empty()) {
         auto [u, d_u] = H.top();
@@ -101,28 +100,18 @@ std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B) const {
         if (d_u != dist[u]) continue;
         if (d_u >= B) break;
 
-        U_0.emplace_back(u, d_u);
-        if (U_0.size() == k_ + 1) {
-            B_prime = d_u;
-            break;
-        }
+        U.emplace_back(u, d_u);
 
         for (auto& [v_id, w_uv] : u->outgoing_edges_) {
             const Vertex *v = graph_.get_vertex(v_id);
             const double cand = d_u + w_uv;
-            if (cand < B and (!dist.contains(v) || cand < dist[v])) {
+            if (cand < B && (!dist.contains(v) || cand < dist[v])) {
                 dist[v] = cand;
                 H.emplace(v, cand);
             }
         }
     }
-
-    const size_t limit = std::min(k_, U_0.size());
-    VertexSet U;
-    for (size_t i = 0; i < limit; ++i) {
-        U.push_back(U_0[i]);
-    }
-    return {B_prime, U};
+    return {B, U};
 }
 
 std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
