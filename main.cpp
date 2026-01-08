@@ -147,8 +147,8 @@ void time_dijkstra(Graph& g, std::vector<const Vertex*>& srcs) {
 }
 
 int main() {
-    //dijkstra_vs_bmssp_demo();
-
+    dijkstra_vs_bmssp_demo();
+    return 0;
     auto graph = graph_from_csv("../resources/soc-sign-bitcoinotc.csv");
     auto srcs = get_start_vertices(graph, 10);
     std::cout << srcs.size() << std::endl;

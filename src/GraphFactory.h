@@ -42,11 +42,11 @@ inline Graph graph_from_csv(const char* filename) {
     return g;
 }
 
-inline std::vector<const Vertex*> get_start_vertices(Graph& g, int num) {
+inline std::vector<const Vertex*> get_start_vertices(const Graph& g, int num) {
     auto& vertices = g.get_vertices();
     std::random_device rd;
     std::mt19937 gen(42);
-    std::uniform_int_distribution<> distrib(0, g.size() - 1);
+    std::uniform_int_distribution<> distrib(0, static_cast<int>(g.size()) - 1);
 
     std::vector<const Vertex*> result;
     std::unordered_set<uint64_t> added;

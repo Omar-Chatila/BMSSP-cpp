@@ -1,22 +1,16 @@
 #include "Dijkstra.h"
 #include "FibHeap.h"
 
-Dijkstra::Dijkstra(Graph& graph, const Vertex* src) : graph_(graph), source_(src) {
-    reset_states();
-}
+Dijkstra::Dijkstra(Graph& graph, const Vertex* src) : graph_(graph), source_(src) {}
 
-void Dijkstra::reset_states() {
-    states_.clear();
+std::unordered_map<const Vertex *, double> Dijkstra::run() const {
     auto& vertices = graph_.get_vertices();
+    std::unordered_map<const Vertex* , DijkstraState> states_;
     for (const auto& v : vertices) {
         const Vertex* vertex = &v;
         states_[vertex] = DijkstraState{std::numeric_limits<double>::infinity(), false, nullptr};
     }
     states_[source_].dist_ = 0;
-}
-
-
-std::unordered_map<const Vertex *, double> Dijkstra::run() {
     FibHeap<HeapKey> priority_queue;
     states_[source_].heap_node_ = priority_queue.insert({0, source_});
 

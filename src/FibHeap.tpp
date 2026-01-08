@@ -3,6 +3,8 @@
 //
 #pragma once
 
+#include <algorithm>
+
 #include "FibHeap.h"
 #include <cmath>
 #include <stdexcept>
@@ -28,7 +30,9 @@ void FibHeap<T>::delete_subtree(Node<T>* x) {
 
 template<typename T>
 void FibHeap<T>::consolidate() {
-    size_t D = static_cast<size_t>(std::log2(n_)) + 1;
+    const double phi = (1.0 + std::sqrt(5.0)) / 2.0;
+    size_t D = static_cast<size_t>(std::log(n_) / std::log(phi)) + 2;
+
     std::vector<Node<T>*> A(D, nullptr);
 
     std::vector<Node<T>*> roots;

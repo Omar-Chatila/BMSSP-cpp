@@ -33,11 +33,11 @@ class Dijkstra {
 private:
     Graph& graph_;
     const Vertex *source_;
-    std::unordered_map<const Vertex* , DijkstraState> states_;
+
 public:
-    void reset_states();
     explicit Dijkstra(Graph& graph, const Vertex* src);
-    std::unordered_map<const Vertex* , double> run();
+
+    [[nodiscard]] std::unordered_map<const Vertex* , double> run() const;
 };
 
 
