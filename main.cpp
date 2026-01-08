@@ -113,11 +113,32 @@ void dijkstra_vs_bmssp_demo() {
     time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
     std::cout << "BMSSP execution took " << time << "us\n";
 
-    for (const auto& [v, v_dist] : vertex_dists_dijkstra) {
+    for (const auto& [v, v_dist] : vertex_dists_bmssp) {
         std::cout << "Shortest path from " << src->id_ << " to " << v->id_ << " is " << v_dist << "\n";
     }
 }
 
-int main() {
-    graph_from_csv("/home/omar/BMSSP/resources/soc-sign-bitcoinotc.csv");
+void time_dijkstra(Graph& g, std::vector<const Vertex*>& srcs) {
+    long total = 0;
+    for (const Vertex* src : srcs) {
+        std::cout << "Dijkstra: " << "\n";
+        auto begin = std::chrono::steady_clock::now();
+        Dijkstra dijkstra(g, src);
+        auto vertex_dists_dijkstra = dijkstra.run();
+        auto end = std::chrono::steady_clock::now();
+        auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+        total += time;
+    }
+    size_t n = srcs.size();
+    std::cout << "Total run time avg over " << n << " runs: " << double(total) / n << " us"; 
 }
+
+int main() {
+    auto graph = graph_from_csv("/home/omar/BMSSP/resources/soc-sign-bitcoinotc.csv");
+    auto srcs = get_start_vertices(graph, 10);
+    std::cout << srcs.size() << std::endl;
+    std::cout << "start dijkstra runs\n";
+    time_dijkstra(graph, srcs);
+
+}
+
