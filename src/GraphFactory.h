@@ -11,14 +11,14 @@
 #include "Graph.h"
 
 
-inline Graph graph_from_csv(const char* filename) {
+inline Graph graph_from_csv(const char* filename, GraphType type) {
     std::ifstream f(filename);
 
     if (!f.is_open()) {
         throw std::invalid_argument("File not found!");
     }
 
-    Graph g;
+    Graph g(type);
     std::string str;
     // Delimiter
     while (getline(f, str)){

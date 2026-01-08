@@ -23,21 +23,22 @@ struct Vertex {
     }
 };
 
-
+enum class GraphType {DIRECTED, UNDIRECTED};
 
 class Graph {
 private:
+    GraphType type_;
     std::deque<Vertex> vertices_;
     std::unordered_map<uint64_t, Vertex*> id_map_;
     size_t num_edges_{};
 
 public:
-    explicit Graph();
+    explicit Graph(GraphType type);
     void add_vertex(uint64_t id);
     void add_edge(uint64_t from_id, uint64_t to_id, double weight);
     const std::deque<Vertex>& get_vertices() const;
     const Vertex* get_vertex(uint64_t id) const;
-    const bool empty() const;
-    const size_t size() const;
-    const size_t edges_size() const;
+    bool empty() const;
+    size_t size() const;
+    size_t edges_size() const;
 };

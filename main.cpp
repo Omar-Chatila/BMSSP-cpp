@@ -80,7 +80,7 @@ void block_list_demo() {
     }
 }
 
-void dijkstra_vs_bmssp_demo() {
+auto get_directed_example() {
     /*
      * http://andrewd.ces.clemson.edu/courses/cpsc212/f06/labs/lab09.html
      * Expected Output:
@@ -92,7 +92,7 @@ void dijkstra_vs_bmssp_demo() {
      *   Shortest path from 1 to 6 is 4
     */
 
-    Graph g;
+    Graph g(GraphType::DIRECTED);
     for (int i = 1; i <= 6; ++i)
         g.add_vertex(i);
     const Vertex* src = g.get_vertex(1);
@@ -106,54 +106,114 @@ void dijkstra_vs_bmssp_demo() {
     g.add_edge(5, 6, 1);
     g.add_edge(6,4,1);
 
-    std::cout << "Dijkstra: " << "\n";
-    auto begin = std::chrono::steady_clock::now();
-    Dijkstra dijkstra(g, src);
-    auto vertex_dists_dijkstra = dijkstra.run();
-    auto end = std::chrono::steady_clock::now();
-    auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-
-    for (const auto& [v, v_dist] : vertex_dists_dijkstra) {
-        std::cout << "Shortest path from " << src->id_ << " to " << v->id_ << " is " << v_dist << "\n";
-    }
-    std::cout << "Dijkstra execution took " << time << "us\n\n";
-
-    std::cout << "BMSSP: " << "\n";
-    begin = std::chrono::steady_clock::now();
-    BMSSP bmssp(g, src);
-    auto vertex_dists_bmssp = bmssp.run();
-    end = std::chrono::steady_clock::now();
-    time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-    std::cout << "BMSSP execution took " << time << "us\n";
-
-    for (const auto& [v, v_dist] : vertex_dists_bmssp) {
-        std::cout << "Shortest path from " << src->id_ << " to " << v->id_ << " is " << v_dist << "\n";
-    }
+    return std::make_pair(std::move(g), src);
 }
 
-void time_dijkstra(Graph& g, std::vector<const Vertex*>& srcs) {
-    long total = 0;
-    for (const Vertex* src : srcs) {
-        std::cout << "Dijkstra: " << "\n";
+auto get_undirected_example() {
+    Graph g(GraphType::UNDIRECTED);
+    for (int i = 0; i < 8; ++i) {
+        g.add_vertex(i);
+    }
+    const Vertex* src = g.get_vertex(0);
+    g.add_edge(0, 1, 2);
+    g.add_edge(0, 3, 4);
+    g.add_edge(0, 2, 5);
+    g.add_edge(2, 3, 1);
+    g.add_edge(1, 2, 2);
+    g.add_edge(3, 5, 4);
+    g.add_edge(2, 5, 3);
+    g.add_edge(2, 4, 4);
+    g.add_edge(1, 4, 7);
+    g.add_edge(1, 6, 12);
+    g.add_edge(4, 5, 4);
+    g.add_edge(4, 7, 5);
+    g.add_edge(5, 7, 7);
+    g.add_edge(6, 7, 3);
+
+    return std::make_pair(std::move(g), src);
+}
+
+void dijkstra_vs_bmssp_demo(GraphType type) {
+    auto [g, src] = type == GraphType::DIRECTED ? get_directed_example() : get_undirected_example();
+    std::cout << "Dijkstra: " << "\n";
+    constexpr int iterations = 1000;
+
+    long dijkstra_time = 0;
+    for (int i = 0; i < iterations; ++i) {
         auto begin = std::chrono::steady_clock::now();
         Dijkstra dijkstra(g, src);
         auto vertex_dists_dijkstra = dijkstra.run();
         auto end = std::chrono::steady_clock::now();
+        auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+        dijkstra_time += time;
+    }
+    dijkstra_time /= iterations;
+
+    Dijkstra dijkstra(g, src);
+    auto vertex_dists_dijkstra = dijkstra.run();
+    for (const auto& [v, v_dist] : vertex_dists_dijkstra) {
+        std::cout << "Shortest path from " << src->id_ << " to " << v->id_ << " is " << v_dist << "\n";
+    }
+    std::cout << "Dijkstra execution took " << dijkstra_time << "ns\n\n";
+
+    std::cout << "BMSSP: " << "\n";
+    long bmssp_time = 0;
+    for (int i = 0; i < iterations; ++i) {
+        auto begin = std::chrono::steady_clock::now();
+        BMSSP bmssp(g, src);
+        auto vertex_dists_bmssp = bmssp.run();
+        auto end = std::chrono::steady_clock::now();
+        auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+        bmssp_time += time;
+    }
+    bmssp_time /= iterations;
+
+    BMSSP bmssp(g, src);
+    auto vertex_dists_bmssp = bmssp.run();
+    for (const auto& [v, v_dist] : vertex_dists_bmssp) {
+        std::cout << "Shortest path from " << src->id_ << " to " << v->id_ << " is " << v_dist << "\n";
+    }
+    std::cout << "BMSSP execution took " << bmssp_time << "ns\n";
+}
+
+void time_dijkstra(Graph& g, const std::vector<const Vertex*>& srcs) {
+    long total = 0;
+    for (const Vertex* src : srcs) {
+        auto begin = std::chrono::steady_clock::now();
+        Dijkstra dijkstra(g, src);
+        auto vertex_dists_dijkstra = dijkstra.run();
+        auto end = std::chrono::steady_clock::now();
+        const auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+        total += time;
+    }
+    const size_t n = srcs.size();
+    std::cout << "Total run time avg over " << n << " runs: " << static_cast<double>(total) / n << " us\n\n";
+}
+
+void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
+    long total = 0;
+    for (const Vertex* src : srcs) {
+        auto begin = std::chrono::steady_clock::now();
+        BMSSP bmssp(g, src);
+        auto vertex_dists_dijkstra = bmssp.run();
+        auto end = std::chrono::steady_clock::now();
         auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
         total += time;
     }
-    size_t n = srcs.size();
-    std::cout << "Total run time avg over " << n << " runs: " << double(total) / n << " us"; 
+    const size_t n = srcs.size();
+    std::cout << "Total run time avg over " << n << " runs: " << static_cast<double>(total) / n << " us";
 }
 
 int main() {
-    dijkstra_vs_bmssp_demo();
+    dijkstra_vs_bmssp_demo(GraphType::UNDIRECTED);
     return 0;
-    auto graph = graph_from_csv("../resources/soc-sign-bitcoinotc.csv");
+    auto graph = graph_from_csv("../resources/soc-sign-bitcoinotc.csv", GraphType::DIRECTED);
     auto srcs = get_start_vertices(graph, 10);
     std::cout << srcs.size() << std::endl;
-    std::cout << "start dijkstra runs\n";
+    //std::cout << "start dijkstra runs\n";
     time_dijkstra(graph, srcs);
+    std::cout << "start bmssp runs\n";
+    //time_bmssp(graph, srcs);
     return 0;
 }
 

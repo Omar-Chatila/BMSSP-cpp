@@ -1,6 +1,6 @@
 #include "Graph.h"
 
-Graph::Graph() = default;
+Graph::Graph(const GraphType type) : type_(type) {}
 
 void Graph::add_vertex(const uint64_t id) {
     if (id_map_.contains(id))
@@ -11,7 +11,13 @@ void Graph::add_vertex(const uint64_t id) {
 
 void Graph::add_edge(const uint64_t from_id, const uint64_t to_id, const double weight) {
     Vertex* v = id_map_.at(from_id);
-    v->outgoing_edges_.emplace_back(to_id, weight);
+    if (type_ == GraphType::DIRECTED) {
+        v->outgoing_edges_.emplace_back(to_id, weight);
+    } else {
+        Vertex* u = id_map_.at(to_id);
+        v->outgoing_edges_.emplace_back(to_id, weight);
+        u->outgoing_edges_.emplace_back(from_id, weight);
+    }
     ++num_edges_;
 }
 
@@ -23,14 +29,14 @@ const Vertex *Graph::get_vertex(const uint64_t id) const {
     return id_map_.at(id);
 }
 
-const bool Graph::empty() const {
+bool Graph::empty() const {
     return vertices_.empty();
 }
 
-const size_t Graph::size() const {
+size_t Graph::size() const {
     return vertices_.size();
 }
 
-const size_t Graph::edges_size() const {
+size_t Graph::edges_size() const {
     return num_edges_;
 }
