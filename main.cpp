@@ -3,12 +3,12 @@
 #include <random>
 #include <benchmark/benchmark.h>
 
-
 #include "BlockLinkedList.h"
 #include "BMSSP.h"
 #include "Dijkstra.h"
 #include "FibHeap.h"
 #include "Graph.h"
+#include "GraphFactory.h"
 
 void fib_heap_demo() {
     FibHeap<int> fib_heap;
@@ -68,7 +68,7 @@ void block_list_demo() {
     }
 }
 
-int main() {
+void dijkstra_vs_bmssp_demo() {
     /*
      * Expected Output:
      *   Shortest path from 1 to 1 is 0
@@ -116,4 +116,8 @@ int main() {
     for (const auto& [v, v_dist] : vertex_dists_dijkstra) {
         std::cout << "Shortest path from " << src->id_ << " to " << v->id_ << " is " << v_dist << "\n";
     }
+}
+
+int main() {
+    graph_from_csv("/home/omar/BMSSP/resources/soc-sign-bitcoinotc.csv");
 }

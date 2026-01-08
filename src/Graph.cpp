@@ -1,18 +1,18 @@
-//
-// Created by omar on 28.12.25.
-//
 #include "Graph.h"
 
 Graph::Graph() = default;
 
 void Graph::add_vertex(const uint64_t id) {
+    if (id_map_.contains(id))
+        return;
     vertices_.emplace_back(id);
     id_map_[id] = &vertices_.back();
 }
 
-void Graph::add_edge(const uint64_t from_id, const uint64_t to_id, const double weight) const {
+void Graph::add_edge(const uint64_t from_id, const uint64_t to_id, const double weight) {
     Vertex* v = id_map_.at(from_id);
     v->outgoing_edges_.emplace_back(to_id, weight);
+    ++num_edges_;
 }
 
 const std::deque<Vertex> &Graph::get_vertices() const {
@@ -21,4 +21,16 @@ const std::deque<Vertex> &Graph::get_vertices() const {
 
 const Vertex *Graph::get_vertex(const uint64_t id) const {
     return id_map_.at(id);
+}
+
+const bool Graph::empty() const {
+    return vertices_.empty();
+}
+
+const size_t Graph::size() const {
+    return vertices_.size();
+}
+
+const size_t Graph::edges_size() const {
+    return num_edges_;
 }
