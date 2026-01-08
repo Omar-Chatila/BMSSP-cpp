@@ -4,6 +4,7 @@
 #include <functional>
 #include <queue>
 #include <ranges>
+#include <stack>
 
 BMSSP::BMSSP(Graph &graph, const Vertex *src) : graph_(graph), source_(src) {
     const size_t n = graph.get_vertices().size();
@@ -11,13 +12,31 @@ BMSSP::BMSSP(Graph &graph, const Vertex *src) : graph_(graph), source_(src) {
     t_ = static_cast<size_t>(std::pow(std::log(n), 2.0/3.0));
 }
 
-size_t dfs(const Vertex* u, std::unordered_map<const Vertex*, std::vector<const Vertex*>>& children,
-    std::unordered_map<const Vertex*, size_t>& subtree_size) {
-    size_t size = 1;
-    for (const auto v : children[u])
-        size += dfs(v, children, subtree_size);
-    subtree_size[u] = size;
-    return size;
+inline void dfs(const Vertex* root,
+            std::unordered_map<const Vertex*, std::vector<const Vertex*>>& children,
+            std::unordered_map<const Vertex*, size_t>& subtree_size) {
+    std::vector<const Vertex*> order;
+    order.reserve(children.size());
+
+    std::stack<const Vertex*> stack;
+    stack.push(root);
+
+    while (!stack.empty()) {
+        const Vertex* u = stack.top();
+        stack.pop();
+        order.push_back(u);
+        for (const auto v : children[u]) {
+            stack.push(v);
+        }
+    }
+
+    for (const auto u : std::ranges::reverse_view(order)) {
+        size_t size = 1;
+        for (const Vertex* child : children[u]) {
+            size += subtree_size[child];
+        }
+        subtree_size[u] = size;
+    }
 }
 
 std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, double B) const {

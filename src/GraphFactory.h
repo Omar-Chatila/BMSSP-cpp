@@ -31,7 +31,9 @@ inline Graph graph_from_csv(const char* filename) {
             sscanf(str.c_str(),"%lu,%lu,%lf", &from_id, &to_id, &weight);
             
         g.add_vertex(from_id);
-            if (weight < 0.0) continue;
+        g.add_vertex(to_id);
+        if (weight < 0.0)
+            continue;
         g.add_edge(from_id, to_id, weight);
     }
 
@@ -51,8 +53,8 @@ inline std::vector<const Vertex*> get_start_vertices(Graph& g, int num) {
 
     result.reserve(num);
     for (int i = 0; i < num; ++i) {
-        const int index = distrib(gen);
-        const Vertex* candidate = &vertices.at(index);
+        const int rand_i = distrib(gen);
+        const Vertex* candidate = &vertices.at(rand_i);
         while (candidate->outgoing_edges_.empty() || added.contains(candidate->id_)) {
             const int index = distrib(gen);
             candidate = &vertices.at(index);

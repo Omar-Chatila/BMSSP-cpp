@@ -10,6 +10,18 @@
 #include "Graph.h"
 #include "GraphFactory.h"
 
+/*
+size_t dfs(const Vertex* u, std::unordered_map<const Vertex*, std::vector<const Vertex*>>& children,
+    std::unordered_map<const Vertex*, size_t>& subtree_size) {
+    size_t size = 1;
+    for (const auto v : children[u])
+        size += dfs(v, children, subtree_size);
+    subtree_size[u] = size;
+    return size;
+}
+ */
+
+
 void fib_heap_demo() {
     FibHeap<int> fib_heap;
     fib_heap.insert(8);
@@ -135,13 +147,13 @@ void time_dijkstra(Graph& g, std::vector<const Vertex*>& srcs) {
 }
 
 int main() {
-    dijkstra_vs_bmssp_demo();
-    return 0;
-    auto graph = graph_from_csv("/home/omar/BMSSP/resources/soc-sign-bitcoinotc.csv");
+    //dijkstra_vs_bmssp_demo();
+
+    auto graph = graph_from_csv("../resources/soc-sign-bitcoinotc.csv");
     auto srcs = get_start_vertices(graph, 10);
     std::cout << srcs.size() << std::endl;
     std::cout << "start dijkstra runs\n";
     time_dijkstra(graph, srcs);
-
+    return 0;
 }
 
