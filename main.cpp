@@ -110,6 +110,19 @@ auto get_directed_example() {
 }
 
 auto get_undirected_example() {
+    /*
+     * https://www.researchgate.net/figure/Example-Graph-for-dynamic-Dijkstra-algorithm_fig5_323578961
+     * Expected Output:
+     *  Shortest path from 0 to 0 is 0
+     *  Shortest path from 0 to 1 is 2
+     *  Shortest path from 0 to 2 is 4
+     *  Shortest path from 0 to 3 is 4
+     *  Shortest path from 0 to 4 is 8
+     *  Shortest path from 0 to 5 is 7
+     *  Shortest path from 0 to 6 is 14
+     *  Shortest path from 0 to 7 is 13
+    */
+
     Graph g(GraphType::UNDIRECTED);
     for (int i = 0; i < 8; ++i) {
         g.add_vertex(i);
@@ -205,15 +218,13 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
 }
 
 int main() {
-    dijkstra_vs_bmssp_demo(GraphType::UNDIRECTED);
-    return 0;
-    auto graph = graph_from_csv("../resources/soc-sign-bitcoinotc.csv", GraphType::DIRECTED);
+    auto graph = graph_from_csv("../resources/graph1000.csv", GraphType::DIRECTED);
     auto srcs = get_start_vertices(graph, 10);
     std::cout << srcs.size() << std::endl;
     //std::cout << "start dijkstra runs\n";
-    time_dijkstra(graph, srcs);
+    //time_dijkstra(graph, srcs);
     std::cout << "start bmssp runs\n";
-    //time_bmssp(graph, srcs);
+    time_bmssp(graph, srcs);
     return 0;
 }
 
