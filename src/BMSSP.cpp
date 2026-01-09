@@ -61,7 +61,7 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, double B)
             for (auto& [v_id, w_uv] : u->outgoing_edges_) {
                 const Vertex *v = graph_.get_vertex(v_id);
                 const double cand = d_u + w_uv;
-                if (cand < B and (!exists[v->id_] or cand < dist[v->id_])) {
+                if (cand < B and (cand < dist[v->id_])) {
                     dist[v->id_] = cand;
                     Wi.emplace_back(v, cand);
                 }
@@ -114,9 +114,9 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, double B)
 }
 
 std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B) const {
-    std::unordered_map<const Vertex*, double> dist;
+    std::vector<double> dist(n_, INF);
     auto& [v_ptr, v_dist] = S;
-    dist[v_ptr] = v_dist;
+    dist[v_ptr->id_] = v_dist;
 
     std::priority_queue<Pair, VertexSet, std::function<bool(const Pair&, const Pair&)>> H(
         [](const Pair& a, const Pair& b) {
@@ -130,7 +130,7 @@ std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B) const {
         auto [u, d_u] = H.top();
         H.pop();
 
-        if (d_u != dist[u]) continue;
+        if (d_u != dist[u->id_]) continue;
         if (d_u >= B) break;
 
         U.emplace_back(u, d_u);
@@ -138,8 +138,8 @@ std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B) const {
         for (auto& [v_id, w_uv] : u->outgoing_edges_) {
             const Vertex *v = graph_.get_vertex(v_id);
             const double cand = d_u + w_uv;
-            if (cand < B && (!dist.contains(v) || cand < dist[v])) {
-                dist[v] = cand;
+            if (cand < B && cand < dist[v->id_]) {
+                dist[v->id_] = cand;
                 H.emplace(v, cand);
             }
         }
@@ -152,10 +152,8 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
         return base_case(S[0], B);
     }
     std::vector dist(n_, INF);
-    std::vector exists(n_, false);
     for (const auto& [vtx, v_dist] : S) {
         dist[vtx->id_] = v_dist;
-        exists[vtx->id_] = true;
     }
     auto [P, W] = find_pivots(S, B);
     const auto M = static_cast<size_t>(std::pow(2, (l - 1) * t_));
@@ -179,7 +177,7 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
             for (auto [v_id, w_uv] : u->outgoing_edges_) {
                 const Vertex *v = graph_.get_vertex(v_id);
                 const double cand = du + w_uv;
-                if (!exists[v->id_] or cand < dist[v->id_]) {
+                if (cand < dist[v->id_]) {
                     dist[v->id_] = cand;
                     if (cand >= Bi and cand < B) {
                         D.insert(v, cand);
@@ -194,7 +192,7 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
                 }
             }
         }
-        auto batch = std::list<Pair>(K.begin(), K.end());
+        auto batch = std::list(K.begin(), K.end());
         for (auto& [x, dx] : Si) {
             if (dx >= Bi_prime && dx < Bi) {
                 batch.emplace_back(x, dx);
@@ -204,7 +202,7 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
     }
     VertexSet result = U;
     for (auto& [vtx, dv] : W) {
-        if (exists[vtx->id_] && dist[vtx->id_] < B_prime) {
+        if ( dist[vtx->id_] < B_prime) {
             result.emplace_back(vtx, dist[vtx->id_]);
         }
     }
@@ -215,7 +213,7 @@ std::vector<double> BMSSP::run() const {
     const int l = std::ceil(std::log(graph_.get_vertices().size()) / static_cast<double>(t_));
     VertexSet S;
     S.emplace_back(source_, 0.0);
-    constexpr double B = std::numeric_limits<double>::infinity();
+    constexpr double B = INF;
     auto [_, v_set] = bmssp(l, B, S);
  
     std::vector<double> result(n_);
