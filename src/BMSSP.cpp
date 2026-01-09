@@ -2,49 +2,59 @@
 
 #include <cmath>
 #include <functional>
+#include <iostream>
 #include <queue>
 #include <ranges>
 #include <stack>
 
 static constexpr double INF = std::numeric_limits<double>::infinity();
 
+static bool output = false;
+
 BMSSP::BMSSP(Graph &graph, const Vertex *src) : graph_(graph), source_(src) {
     const size_t n = graph.get_vertices().size();
     k_ = static_cast<size_t>(std::pow(std::log(n), 1.0/3.0));
     t_ = static_cast<size_t>(std::pow(std::log(n), 2.0/3.0));
+    if (!output) {
+        std::cout << "k: " << k_ << " t: " << t_ << std::endl;
+        output = true;
+    }
     n_ = n;
 }
 
 BMSSP::BMSSP(Graph &graph, const Vertex *src, const size_t k, const size_t t) : graph_(graph), source_(src), n_(graph.size()), k_(k), t_(t) {
 }
 
-inline void dfs(const Vertex* root,
-            const std::vector<std::vector<uint64_t>>& children,
-            std::vector<size_t>& subtree_size) {
-    std::vector<uint64_t> order;
-    order.reserve(children.size());
-
+inline void dfs(uint64_t root_id,
+                const std::vector<std::vector<uint64_t>>& children,
+                std::vector<size_t>& subtree_size) {
     std::stack<uint64_t> stack;
-    stack.push(root->id_);
+    stack.push(root_id);
 
     while (!stack.empty()) {
         const uint64_t u = stack.top();
-        stack.pop();
-        order.push_back(u);
-        for (const auto v : children[u]) {
-            stack.push(v);
-        }
-    }
+        if (subtree_size[u] == 0) {
+            bool all_children_processed = true;
+            size_t total = 1;
 
-    for (const auto u : std::ranges::reverse_view(order)) {
-        size_t size = 1;
-        for (const uint64_t child : children[u]) {
-            size += subtree_size[child];
+            for (uint64_t child : children[u]) {
+                if (subtree_size[child] == 0) {
+                    all_children_processed = false;
+                    stack.push(child);
+                } else {
+                    total += subtree_size[child];
+                }
+            }
+
+            if (all_children_processed) {
+                subtree_size[u] = total;
+                stack.pop();
+            }
+        } else {
+            stack.pop();
         }
-        subtree_size[u] = size;
     }
 }
-
 std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, double B) const {
     std::vector dist(n_, INF);
     std::vector exists(n_, false);
@@ -73,13 +83,18 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, double B)
         W_prev = std::move(Wi);
 
         if (W.size() > k_ * S.size()) {
-            return {S, W};
+            return {S, std::move(W)};
         }
     }
 
     // construct Forest F
     //std::unordered_map<const Vertex*, std::vector<const Vertex*>> children;
     std::vector<std::vector<uint64_t>> children;
+    children.reserve(n_);
+    for (size_t i = 0; i < n_; ++i) {
+        children.emplace_back();
+        children.back().reserve(8); // average branching factor
+    }
     //std::unordered_map<const Vertex*, const Vertex*> parent;
     std::vector<uint64_t> parent;
     std::vector<bool> parent_exists;
@@ -100,7 +115,7 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, double B)
     std::vector<size_t> subtree_size;
     for (auto& [u, _] : S) {
         if (!parent_exists[u->id_]) {
-            dfs(u, children,  subtree_size);
+            dfs(u->id_, children,  subtree_size);
         }
     }
 
@@ -113,7 +128,7 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, double B)
     return {P, W};
 }
 
-std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B) const {
+std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B, const int l) const {
     std::vector<double> dist(n_, INF);
     auto& [v_ptr, v_dist] = S;
     dist[v_ptr->id_] = v_dist;
@@ -125,6 +140,7 @@ std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B) const {
     H.emplace(v_ptr, v_dist);
 
     VertexSet U;
+    U.reserve(static_cast<size_t>(static_cast<double>(k_) * std::pow(2, l * t_)));
 
     while (!H.empty()) {
         auto [u, d_u] = H.top();
@@ -149,7 +165,7 @@ std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B) const {
 
 std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
     if (l == 0) {
-        return base_case(S[0], B);
+        return base_case(S[0], B, l);
     }
     std::vector dist(n_, INF);
     for (const auto& [vtx, v_dist] : S) {
@@ -165,6 +181,7 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
     }
     size_t i = 0;
     VertexSet U;
+    U.reserve(static_cast<size_t>(static_cast<double>(k_) * std::pow(2, l * t_)));
     double B_prime = B;
     while (U.size() < static_cast<size_t>(static_cast<double>(k_) * std::pow(2, l * t_)) and !D.empty()) {
         ++i;

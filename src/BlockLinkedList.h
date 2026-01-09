@@ -192,7 +192,7 @@ public:
     void batch_prepend(std::list<Pair>& batch, const double b_upper) {
         const size_t L = batch.size();
 
-        // hen L ≤ M , we simply create a new block for L and add it to the beginning of D0.
+        // When L ≤ M , we simply create a new block for L and add it to the beginning of D0.
         if (L <= M_) {
             Block b{b_upper, BlockOwner::D0};
             b.elems_.splice(b.elems_.end(), batch);
@@ -218,7 +218,7 @@ public:
                 Block b{b_upper, BlockOwner::D0};
                 b.elems_.splice(b.elems_.end(), curr);
                 D0_.emplace_front(std::move(b));
-                auto block_it = D0_.begin();
+                const auto block_it = D0_.begin();
                 for (auto it = block_it->elems_.begin(); it != block_it->elems_.end(); ++it) {
                     key_poses_[it->key_->id_] = { block_it, it };
                 }

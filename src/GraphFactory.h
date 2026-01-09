@@ -20,7 +20,6 @@ inline Graph graph_from_csv(const char* filename, GraphType type) {
 
     Graph g(type);
     std::string str;
-    // Delimiter
     while (getline(f, str)){
         uint64_t from_id;
         uint64_t to_id;

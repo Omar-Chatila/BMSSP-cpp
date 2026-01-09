@@ -167,7 +167,7 @@ void dijkstra_vs_bmssp_demo(GraphType type) {
     for (size_t i = 0; i < vertex_dists_dijkstra.size(); ++i) {
         std::cout << "Shortest path from " << src->id_ << " to " << i << " is " << vertex_dists_dijkstra[i] << "\n";
     }
-    std::cout << "Dijkstra execution took " << dijkstra_time << "ns\n\n";
+    std::cout << "Dijkstra execution took " << dijkstra_time << " ns\n\n";
 
     std::cout << "BMSSP: " << "\n";
     long bmssp_time = 0;
@@ -186,7 +186,7 @@ void dijkstra_vs_bmssp_demo(GraphType type) {
     for (size_t i = 0; i < vertex_dists_bmssp.size(); ++i) {
         std::cout << "Shortest path from " << src->id_ << " to " << i << " is " << vertex_dists_bmssp[i] << "\n";
     }
-    std::cout << "BMSSP execution took " << bmssp_time << "ns\n";
+    std::cout << "BMSSP execution took " << bmssp_time << " ns\n";
 }
 
 void time_dijkstra(Graph& g, const std::vector<const Vertex*>& srcs) {

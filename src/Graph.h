@@ -29,16 +29,16 @@ class Graph {
 private:
     GraphType type_;
     std::deque<Vertex> vertices_;
-    std::unordered_map<uint64_t, Vertex*> id_map_;
+    std::vector<Vertex*> id_map_;
     size_t num_edges_{};
 
 public:
     explicit Graph(GraphType type);
     void add_vertex(uint64_t id);
     void add_edge(uint64_t from_id, uint64_t to_id, double weight);
-    const std::deque<Vertex>& get_vertices() const;
-    const Vertex* get_vertex(uint64_t id) const;
-    bool empty() const;
-    size_t size() const;
-    size_t edges_size() const;
+    [[nodiscard]] const std::deque<Vertex>& get_vertices() const;
+    [[nodiscard]] const Vertex* get_vertex(uint64_t id) const;
+    [[nodiscard]] bool empty() const;
+    [[nodiscard]] size_t size() const;
+    [[nodiscard]] size_t edges_size() const;
 };
