@@ -162,10 +162,10 @@ void dijkstra_vs_bmssp_demo(GraphType type) {
     }
     dijkstra_time /= iterations;
 
-    Dijkstra dijkstra(g, src);
-    auto vertex_dists_dijkstra = dijkstra.run();
-    for (const auto& [v, v_dist] : vertex_dists_dijkstra) {
-        std::cout << "Shortest path from " << src->id_ << " to " << v->id_ << " is " << v_dist << "\n";
+    const Dijkstra dijkstra(g, src);
+    const auto vertex_dists_dijkstra = dijkstra.run();
+    for (size_t i = 0; i < vertex_dists_dijkstra.size(); ++i) {
+        std::cout << "Shortest path from " << src->id_ << " to " << i << " is " << vertex_dists_dijkstra[i] << "\n";
     }
     std::cout << "Dijkstra execution took " << dijkstra_time << "ns\n\n";
 
@@ -176,13 +176,13 @@ void dijkstra_vs_bmssp_demo(GraphType type) {
         BMSSP bmssp(g, src);
         auto vertex_dists_bmssp = bmssp.run();
         auto end = std::chrono::steady_clock::now();
-        auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+        const auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
         bmssp_time += time;
     }
     bmssp_time /= iterations;
 
-    BMSSP bmssp(g, src);
-    auto vertex_dists_bmssp = bmssp.run();
+    const BMSSP bmssp(g, src);
+    const auto vertex_dists_bmssp = bmssp.run();
     for (size_t i = 0; i < vertex_dists_bmssp.size(); ++i) {
         std::cout << "Shortest path from " << src->id_ << " to " << i << " is " << vertex_dists_bmssp[i] << "\n";
     }
@@ -208,7 +208,7 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
     for (const Vertex* src : srcs) {
         auto begin = std::chrono::steady_clock::now();
         //BMSSP bmssp(g, src);
-        BMSSP bmssp(g, src, 3, 4);
+        BMSSP bmssp(g, src, 6, 7);
 
         auto vertex_dists_dijkstra = bmssp.run();
         auto end = std::chrono::steady_clock::now();

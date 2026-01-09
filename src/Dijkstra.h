@@ -37,7 +37,7 @@ private:
 public:
     explicit Dijkstra(Graph& graph, const Vertex* src);
 
-    [[nodiscard]] std::unordered_map<const Vertex* , double> run() const;
+    [[nodiscard]] std::vector<double> run() const;
 };
 
 
