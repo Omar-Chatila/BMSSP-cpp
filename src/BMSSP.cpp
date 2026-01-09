@@ -10,6 +10,10 @@ BMSSP::BMSSP(Graph &graph, const Vertex *src) : graph_(graph), source_(src) {
     const size_t n = graph.get_vertices().size();
     k_ = static_cast<size_t>(std::pow(std::log(n), 1.0/3.0));
     t_ = static_cast<size_t>(std::pow(std::log(n), 2.0/3.0));
+    n_ = n;
+}
+
+BMSSP::BMSSP(Graph &graph, const Vertex *src, const size_t k, const size_t t) : graph_(graph), source_(src), n_(graph.size()), k_(k), t_(t) {
 }
 
 inline void dfs(const Vertex* root,
@@ -143,7 +147,7 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
     }
     auto [P, W] = find_pivots(S, B);
     const auto M = static_cast<size_t>(std::pow(2, (l - 1) * t_));
-    DequeueBlocks D(M, B);
+    DequeueBlocks D(n_, M, B);
     double B0_prime = std::numeric_limits<double>::infinity();
     for (const auto& [vtx, dist_v] : P) {
         D.insert(vtx, dist_v);

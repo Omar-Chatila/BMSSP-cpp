@@ -10,17 +10,23 @@ private:
     Graph& graph_;
     const Vertex* source_;
 
+    size_t n_;
     size_t k_;
     size_t t_;
-    [[nodiscard]] std::pair<VertexSet, VertexSet> find_pivots(const VertexSet& S, double B) const;
+
+    [[nodiscard]]
+    std::pair<VertexSet, VertexSet> find_pivots(const VertexSet& S, double B) const;
 
     std::pair<double, VertexSet> base_case(Pair& S, double B) const;
 
     std::pair<double, VertexSet> bmssp(int l, double B, VertexSet& S) const;
 public:
-    explicit BMSSP(Graph& graph, const Vertex* src);
+    BMSSP(Graph& graph, const Vertex* src);
 
-    [[nodiscard]] std::unordered_map<const Vertex *, double> run() const;
+    BMSSP(Graph& graph, const Vertex* src, size_t k, size_t t);
+
+    [[nodiscard]]
+    std::unordered_map<const Vertex *, double> run() const;
 };
 
 

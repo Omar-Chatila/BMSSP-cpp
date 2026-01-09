@@ -48,7 +48,7 @@ void fib_heap_demo() {
 
 void block_list_demo() {
     constexpr int n = 1000;
-    DequeueBlocks D(100, 120);
+    DequeueBlocks D(n, 100, 120);
     std::vector<Vertex*> vertices;
     vertices.reserve(n);
 
@@ -93,18 +93,18 @@ auto get_directed_example() {
     */
 
     Graph g(GraphType::DIRECTED);
-    for (int i = 1; i <= 6; ++i)
+    for (int i = 0; i < 6; ++i)
         g.add_vertex(i);
-    const Vertex* src = g.get_vertex(1);
+    const Vertex* src = g.get_vertex(0);
 
-    g.add_edge(1, 2, 3);
-    g.add_edge(1,3,1);
-    g.add_edge(2,3,2);
-    g.add_edge(2,4,3);
-    g.add_edge(2,5,6);
-    g.add_edge(3,5,2);
-    g.add_edge(5, 6, 1);
-    g.add_edge(6,4,1);
+    g.add_edge(0, 1, 3);
+    g.add_edge(0,2,1);
+    g.add_edge(1,2,2);
+    g.add_edge(1,3,3);
+    g.add_edge(1,4,6);
+    g.add_edge(2,4,2);
+    g.add_edge(4, 5, 1);
+    g.add_edge(5,3,1);
 
     return std::make_pair(std::move(g), src);
 }
@@ -208,6 +208,8 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
     for (const Vertex* src : srcs) {
         auto begin = std::chrono::steady_clock::now();
         BMSSP bmssp(g, src);
+        //BMSSP bmssp(g, src, 6, 7);
+
         auto vertex_dists_dijkstra = bmssp.run();
         auto end = std::chrono::steady_clock::now();
         auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
@@ -218,11 +220,11 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
 }
 
 int main() {
-    auto graph = graph_from_csv("../resources/graph1000.csv", GraphType::DIRECTED);
+    auto graph = graph_from_csv("../resources/graph1000000.csv", GraphType::DIRECTED);
     auto srcs = get_start_vertices(graph, 10);
     std::cout << srcs.size() << std::endl;
     //std::cout << "start dijkstra runs\n";
-    //time_dijkstra(graph, srcs);
+    time_dijkstra(graph, srcs);
     std::cout << "start bmssp runs\n";
     time_bmssp(graph, srcs);
     return 0;

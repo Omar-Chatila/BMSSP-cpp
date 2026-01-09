@@ -44,7 +44,8 @@ class DequeueBlocks {
     std::multimap<double, std::list<Block>::iterator> D1_tree_;     // Red-Black Tree
 
     // Key bookkeeping
-    std::unordered_map<const Vertex*, KeyPos> key_map_;
+    std::vector<KeyPos> key_poses_;
+    std::vector<bool> present_;
 
     // Params
     size_t M_;
@@ -63,7 +64,9 @@ class DequeueBlocks {
 
 public:
     // Initialize(M, B)
-    DequeueBlocks(const size_t M, const double B) : M_(M), B_upper_(B) {
+    DequeueBlocks(const size_t N, const size_t M, const double B) : M_(M), B_upper_(B) {
+        key_poses_ = std::vector<KeyPos>(N, KeyPos{});
+        present_ = std::vector(N, false);
         D1_.emplace_back(B, BlockOwner::D1);
         auto it = D1_.begin();
         D1_tree_.emplace(B, it);
@@ -72,9 +75,9 @@ public:
     // Insert(a, b)
     void insert(const Vertex* a, const double b) {
         // To insert a key/value pair ⟨a, b⟩, we first check the existence of its key a
-        if (key_map_.contains(a)) {
+        if (present_[a->id_]) {
             // If a already exists, we delete original pair ⟨a, b′⟩ and insert new pair ⟨a, b⟩ only when b < b′.
-            const auto& pos = key_map_[a];
+            const auto& pos = key_poses_[a->id_];
             const double old_b = pos.elem_->value_;
             if (b >= old_b) return;
             erase(pos, a);
@@ -85,6 +88,7 @@ public:
 
         // ⟨a, b⟩ is then added to the corresponding linked list in O(1) time
         block_it->elems_.emplace_back(a, b);
+        present_[a->id_] = true;
 
         // update upper bound
         if (b > block_it->upper_) {
@@ -102,7 +106,7 @@ public:
 
         // save key pos
         const auto elem_it = std::prev(block_it->elems_.end());
-        key_map_[a] = {block_it, elem_it};
+        key_poses_[a->id_] = {block_it, elem_it};
         if (block_it->elems_.size() > M_) {
             split(block_it);
         }
@@ -114,7 +118,7 @@ public:
         const auto elem_it  = pos.elem_;
         // To delete the key/value pair ⟨a, b⟩, we remove it directly from the linked list
         block_it->elems_.erase(elem_it);
-        key_map_.erase(key);
+        present_[key->id_] = false;
 
         // if a block in D1 becomes empty after deletion, we need to remove its upper bound in the binary search tree
         if (block_it->elems_.empty()) {
@@ -139,7 +143,7 @@ public:
         std::ranges::nth_element(temp, mid,
                                  [](const Pair* a, const Pair* b) { return a->value_ < b->value_; });
 
-        double median = (*mid)->value_;
+        const double median = (*mid)->value_;
 
         // partitioning the elements into two new blocks each with at most ⌈M/2⌉ elements
         Block left(median, BlockOwner::D1);
@@ -178,10 +182,10 @@ public:
 
         // update key-map
         for (auto elem_it = left_it->elems_.begin(); elem_it != left_it->elems_.end(); ++elem_it) {
-            key_map_[elem_it->key_] = { left_it, elem_it };
+            key_poses_[elem_it->key_->id_] = { left_it, elem_it };
         }
         for (auto elem_it = right_it->elems_.begin(); elem_it != right_it->elems_.end(); ++elem_it) {
-            key_map_[elem_it->key_] = { right_it, elem_it };
+            key_poses_[elem_it->key_->id_] = { right_it, elem_it };
         }
     }
 
@@ -195,7 +199,7 @@ public:
             D0_.emplace_front(std::move(b));
             const auto block_it = D0_.begin();
             for (auto it = block_it->elems_.begin(); it != block_it->elems_.end(); ++it) {
-                key_map_[it->key_] = { block_it, it };
+                key_poses_[it->key_->id_] = { block_it, it };
             }
             return;
         }
@@ -216,7 +220,7 @@ public:
                 D0_.emplace_front(std::move(b));
                 auto block_it = D0_.begin();
                 for (auto it = block_it->elems_.begin(); it != block_it->elems_.end(); ++it) {
-                    key_map_[it->key_] = { block_it, it };
+                    key_poses_[it->key_->id_] = { block_it, it };
                 }
                 continue;
             }
@@ -273,7 +277,7 @@ public:
                 S.insert(S.end(), block->elems_.begin(), block->elems_.end());
             }
             for (const auto& [key, val] : S) {
-                erase(key_map_[key], key);
+                erase(key_poses_[key->id_], key);
             }
             return {S, B_upper_};
         }
@@ -309,7 +313,7 @@ public:
         // Then we delete elements in S′ from D0 and D1, whose running time is amortized to insertion time
         for (size_t i = 0; i < M_; ++i) {
             const auto* element = candidates[i];
-            erase(key_map_[element->key_], element->key_);
+            erase(key_poses_[element->key_->id_], element->key_);
         }
 
         return {result, x};
