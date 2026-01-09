@@ -183,8 +183,8 @@ void dijkstra_vs_bmssp_demo(GraphType type) {
 
     BMSSP bmssp(g, src);
     auto vertex_dists_bmssp = bmssp.run();
-    for (const auto& [v, v_dist] : vertex_dists_bmssp) {
-        std::cout << "Shortest path from " << src->id_ << " to " << v->id_ << " is " << v_dist << "\n";
+    for (size_t i = 0; i < vertex_dists_bmssp.size(); ++i) {
+        std::cout << "Shortest path from " << src->id_ << " to " << i << " is " << vertex_dists_bmssp[i] << "\n";
     }
     std::cout << "BMSSP execution took " << bmssp_time << "ns\n";
 }
@@ -207,8 +207,8 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
     long total = 0;
     for (const Vertex* src : srcs) {
         auto begin = std::chrono::steady_clock::now();
-        BMSSP bmssp(g, src);
-        //BMSSP bmssp(g, src, 6, 7);
+        //BMSSP bmssp(g, src);
+        BMSSP bmssp(g, src, 3, 4);
 
         auto vertex_dists_dijkstra = bmssp.run();
         auto end = std::chrono::steady_clock::now();
@@ -220,7 +220,7 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
 }
 
 int main() {
-    auto graph = graph_from_csv("../resources/graph1000000.csv", GraphType::DIRECTED);
+    auto graph = graph_from_csv("../resources/graph1000.csv", GraphType::DIRECTED);
     auto srcs = get_start_vertices(graph, 10);
     std::cout << srcs.size() << std::endl;
     //std::cout << "start dijkstra runs\n";

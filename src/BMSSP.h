@@ -26,7 +26,7 @@ public:
     BMSSP(Graph& graph, const Vertex* src, size_t k, size_t t);
 
     [[nodiscard]]
-    std::unordered_map<const Vertex *, double> run() const;
+    std::vector<double> run() const;
 };
 
 

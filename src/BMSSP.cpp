@@ -6,6 +6,8 @@
 #include <ranges>
 #include <stack>
 
+static constexpr double INF = std::numeric_limits<double>::infinity();
+
 BMSSP::BMSSP(Graph &graph, const Vertex *src) : graph_(graph), source_(src) {
     const size_t n = graph.get_vertices().size();
     k_ = static_cast<size_t>(std::pow(std::log(n), 1.0/3.0));
@@ -17,16 +19,16 @@ BMSSP::BMSSP(Graph &graph, const Vertex *src, const size_t k, const size_t t) : 
 }
 
 inline void dfs(const Vertex* root,
-            std::unordered_map<const Vertex*, std::vector<const Vertex*>>& children,
-            std::unordered_map<const Vertex*, size_t>& subtree_size) {
-    std::vector<const Vertex*> order;
+            const std::vector<std::vector<uint64_t>>& children,
+            std::vector<size_t>& subtree_size) {
+    std::vector<uint64_t> order;
     order.reserve(children.size());
 
-    std::stack<const Vertex*> stack;
-    stack.push(root);
+    std::stack<uint64_t> stack;
+    stack.push(root->id_);
 
     while (!stack.empty()) {
-        const Vertex* u = stack.top();
+        const uint64_t u = stack.top();
         stack.pop();
         order.push_back(u);
         for (const auto v : children[u]) {
@@ -36,7 +38,7 @@ inline void dfs(const Vertex* root,
 
     for (const auto u : std::ranges::reverse_view(order)) {
         size_t size = 1;
-        for (const Vertex* child : children[u]) {
+        for (const uint64_t child : children[u]) {
             size += subtree_size[child];
         }
         subtree_size[u] = size;
@@ -44,9 +46,12 @@ inline void dfs(const Vertex* root,
 }
 
 std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, double B) const {
-    std::unordered_map<const Vertex*, double> dist;
-    for (auto& [v_ptr, v_dist] : S)
-        dist[v_ptr] = v_dist;
+    std::vector dist(n_, INF);
+    std::vector exists(n_, false);
+    for (const auto& [vtx, v_dist] : S) {
+        dist[vtx->id_] = v_dist;
+        exists[vtx->id_] = true;
+    }
 
     VertexSet W = S;
     VertexSet W_prev = S;
@@ -56,8 +61,8 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, double B)
             for (auto& [v_id, w_uv] : u->outgoing_edges_) {
                 const Vertex *v = graph_.get_vertex(v_id);
                 const double cand = d_u + w_uv;
-                if (cand < B and (!dist.contains(v) or cand < dist[v])) {
-                    dist[v] = cand;
+                if (cand < B and (!exists[v->id_] or cand < dist[v->id_])) {
+                    dist[v->id_] = cand;
                     Wi.emplace_back(v, cand);
                 }
             }
@@ -73,30 +78,35 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, double B)
     }
 
     // construct Forest F
-    std::unordered_map<const Vertex*, std::vector<const Vertex*>> children;
-    std::unordered_map<const Vertex*, const Vertex*> parent;
+    //std::unordered_map<const Vertex*, std::vector<const Vertex*>> children;
+    std::vector<std::vector<uint64_t>> children;
+    //std::unordered_map<const Vertex*, const Vertex*> parent;
+    std::vector<uint64_t> parent;
+    std::vector<bool> parent_exists;
 
     for (auto& [u, du] : W) {
         for (auto& [v_id, w] : u->outgoing_edges_) {
             const Vertex* v = graph_.get_vertex(v_id);
-            if (!dist.contains(v)) continue;
+            if (!exists[v->id_]) continue;
 
-            if (dist[v] == du + w) {
-                parent[v] = u;
-                children[u].push_back(v);
+            if (dist[v->id_] == du + w) {
+                parent[v->id_] = u->id_;
+                parent_exists[v_id] = true;
+                children[u->id_].push_back(v->id_);
             }
         }
     }
-    std::unordered_map<const Vertex*, size_t> subtree_size;
+    //std::unordered_map<const Vertex*, size_t> subtree_size;
+    std::vector<size_t> subtree_size;
     for (auto& [u, _] : S) {
-        if (!parent.contains(u)) {
-            dfs(u, children, subtree_size);
+        if (!parent_exists[u->id_]) {
+            dfs(u, children,  subtree_size);
         }
     }
 
     VertexSet P;
     for (auto& [u, du] : S) {
-        if (subtree_size[u] >= k_) {
+        if (subtree_size[u->id_] >= k_) {
             P.emplace_back(u, du);
         }
     }
@@ -141,9 +151,11 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
     if (l == 0) {
         return base_case(S[0], B);
     }
-    std::unordered_map<const Vertex*, double> dist;
+    std::vector dist(n_, INF);
+    std::vector exists(n_, false);
     for (const auto& [vtx, v_dist] : S) {
-        dist[vtx] = v_dist;
+        dist[vtx->id_] = v_dist;
+        exists[vtx->id_] = true;
     }
     auto [P, W] = find_pivots(S, B);
     const auto M = static_cast<size_t>(std::pow(2, (l - 1) * t_));
@@ -167,8 +179,8 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
             for (auto [v_id, w_uv] : u->outgoing_edges_) {
                 const Vertex *v = graph_.get_vertex(v_id);
                 const double cand = du + w_uv;
-                if (!dist.contains(v) or cand < dist[v]) {
-                    dist[v] = cand;
+                if (!exists[v->id_] or cand < dist[v->id_]) {
+                    dist[v->id_] = cand;
                     if (cand >= Bi and cand < B) {
                         D.insert(v, cand);
                     } else if (cand >= Bi_prime and cand < Bi) {
@@ -192,23 +204,23 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
     }
     VertexSet result = U;
     for (auto& [vtx, dv] : W) {
-        if (dist.contains(vtx) && dist[vtx] < B_prime) {
-            result.emplace_back(vtx, dist[vtx]);
+        if (exists[vtx->id_] && dist[vtx->id_] < B_prime) {
+            result.emplace_back(vtx, dist[vtx->id_]);
         }
     }
     return {B_prime, result};
 }
 
-std::unordered_map<const Vertex *, double> BMSSP::run() const {
+std::vector<double> BMSSP::run() const {
     const int l = std::ceil(std::log(graph_.get_vertices().size()) / static_cast<double>(t_));
     VertexSet S;
     S.emplace_back(source_, 0.0);
     constexpr double B = std::numeric_limits<double>::infinity();
     auto [_, v_set] = bmssp(l, B, S);
  
-    std::unordered_map<const Vertex*, double> result;
+    std::vector<double> result(n_);
     for (const auto& [vtx, v_dist] : v_set) {
-        result[vtx] = v_dist;
+        result[vtx->id_] = v_dist;
     }
     return result;
 }
