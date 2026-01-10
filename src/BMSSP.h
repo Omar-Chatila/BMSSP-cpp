@@ -14,6 +14,11 @@ private:
     size_t k_;
     size_t t_;
 
+    mutable std::vector<double> pivot_dist_cache_;
+    mutable std::vector<char> pivot_visited_cache_;
+
+    mutable std::vector<double> base_dist_cache_;
+
     [[nodiscard]]
     std::pair<VertexSet, VertexSet> find_pivots(const VertexSet& S, double B) const;
 
