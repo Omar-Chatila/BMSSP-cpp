@@ -9,6 +9,7 @@
 #include "FibHeap.h"
 #include "Graph.h"
 #include "GraphFactory.h"
+#include "benchmarks/BenchmarkSetup.h"
 
 /*
 size_t dfs(const Vertex* u, std::unordered_map<const Vertex*, std::vector<const Vertex*>>& children,
@@ -181,7 +182,7 @@ void dijkstra_vs_bmssp_demo(GraphType type) {
     }
     bmssp_time /= iterations;
 
-    const BMSSP bmssp(g, src);
+    BMSSP bmssp(g, src);
     const auto vertex_dists_bmssp = bmssp.run();
     for (size_t i = 0; i < vertex_dists_bmssp.size(); ++i) {
         std::cout << "Shortest path from " << src->id_ << " to " << i << " is " << vertex_dists_bmssp[i] << "\n";
@@ -206,12 +207,15 @@ void time_dijkstra(Graph& g, const std::vector<const Vertex*>& srcs) {
 void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
     long total = 0;
     for (const Vertex* src : srcs) {
-        BMSSP bmssp(g, src, 6, 7);
+        //BMSSP bmssp(g, src, 8, 3);
         auto begin = std::chrono::steady_clock::now();
-        //BMSSP bmssp(g, src);
+        BMSSP bmssp(g, src);
         auto vertex_dists_dijkstra = bmssp.run();
         auto end = std::chrono::steady_clock::now();
         auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+        if (bmssp.has_exec_failed()) {
+            std::cout << "execution failed\n";
+        }
         total += time;
     }
     const size_t n = srcs.size();
@@ -219,11 +223,13 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
 }
 
 int main() {
-    auto graph = graph_from_csv("../resources/graph1000000.csv", GraphType::DIRECTED);
-    auto srcs = get_start_vertices(graph, 10);
+    run_benchmarks();
+    return 0;
+    auto graph = graph_from_csv("/home/omar/CLionProjects/algo_seminar/resources/benchmarks/undirected_4096_2", GraphType::UNDIRECTED);
+    auto srcs = get_start_vertices(graph, 1);
     std::cout << srcs.size() << std::endl;
     //std::cout << "start dijkstra runs\n";
-    time_dijkstra(graph, srcs);
+    //time_dijkstra(graph, srcs);
     std::cout << "start bmssp runs\n";
     time_bmssp(graph, srcs);
     return 0;

@@ -4,21 +4,21 @@
 #include <fstream>
 #include <string>
 #include <iostream>
-#include <stdexcept>
 #include <vector>
+#include <random>
 #include <unordered_set>
 
 #include "Graph.h"
 
 
 inline Graph graph_from_csv(const char* filename, GraphType type) {
+    Graph g(type);
     std::ifstream f(filename);
-
     if (!f.is_open()) {
-        throw std::invalid_argument("File not found!");
+        std::cout << "File not found -> returning empty graph \n";
+        return g;
     }
 
-    Graph g(type);
     std::string str;
     while (getline(f, str)){
         uint64_t from_id;
@@ -37,11 +37,10 @@ inline Graph graph_from_csv(const char* filename, GraphType type) {
     }
 
     f.close();
-    std::cout << "Graph with " << g.size() << " vertices and " << g.edges_size() << " edges parsed" << std::endl;
     return g;
 }
 
-inline std::vector<const Vertex*> get_start_vertices(const Graph& g, int num) {
+inline std::vector<const Vertex*> get_start_vertices(const Graph& g, const int num) {
     auto& vertices = g.get_vertices();
     std::random_device rd;
     std::mt19937 gen(42);

@@ -14,10 +14,11 @@ Defaults:
 The graph is connected but has random edge directions and weights.
 """
 
-import sys
 import random
+import sys
 
-def generate_dot(num_nodes=12000, avg_out_degree=3, filename="biggraph.dot", undirected = False):
+
+def generate_csv(num_nodes=12000, avg_out_degree=3, filename="biggraph.dot", undirected = False):
     with open(filename, "w") as f:
 
         edges = set()
@@ -52,23 +53,28 @@ def generate_dot(num_nodes=12000, avg_out_degree=3, filename="biggraph.dot", und
     print(f"DOT file with {num_nodes} nodes written to {filename}")
 
 if __name__ == "__main__":
-    undirected = True
+    if len(sys.argv) < 3:
+        print("Usage: python generate_big_dot.py output.csv [num_nodes] [avg_out_degree] [directed<0,1>]")
+        sys.exit(1)
 
-    for n in range(1, 8):
-        nodes = 10**n
+    from pathlib import Path
+    script_dir = Path(__file__).resolve().parent
 
-        for deg in [3] + [2**d for d in range(1, 7)]:
-            requested_random_edges = nodes * deg
-            base_edges = nodes - 1
+    filename = sys.argv[1]
+    nodes = int(sys.argv[2]) if len(sys.argv) >= 3 else 12000
+    deg = int(sys.argv[3]) if len(sys.argv) >= 4 else 3
+    undirected = True if int(sys.argv[4]) == 0 else False
 
-            if undirected:
-                max_edges = nodes * (nodes - 1) // 2
-            else:
-                max_edges = nodes * (nodes - 1)
+    requested_random_edges = nodes * deg
+    base_edges = nodes - 1
 
-            if base_edges + requested_random_edges > max_edges:
-                continue
+    if undirected:
+        max_edges = nodes * (nodes - 1) // 2
+    else:
+        max_edges = nodes * (nodes - 1)
 
-            file = f"benchmarks/graph_{nodes}_{deg}" + ("_undir" if undirected else "")
-            generate_dot(nodes, deg, file, undirected)
-            print(f"{nodes=} {deg=}")
+    if not base_edges + requested_random_edges > max_edges:
+        bench_dir = "benchmarks"
+        out_file = script_dir / bench_dir / filename
+        generate_csv(nodes, deg, str(out_file), undirected)
+        print(f"{nodes=} {deg=}")

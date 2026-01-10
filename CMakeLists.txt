@@ -9,8 +9,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
-set(CMAKE_C_FLAGS_DEBUG "-O0 -g")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+set(CMAKE_C_FLAGS_DEBUG "-O0 -g3")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3")
 
 find_package(benchmark REQUIRED)
 
@@ -23,6 +23,7 @@ target_include_directories(algo_seminar
         INTERFACE
         benchmark/include/benchmark/
         ${PROJECT_SOURCE_DIR}/src
+        ${PROJECT_SOURCE_DIR}/src/benchmarks
 )
 
 # Optional: show headers in IDE
@@ -32,6 +33,7 @@ target_sources(algo_seminar INTERFACE
         src/Graph.cpp
         src/Dijkstra.cpp
         src/BMSSP.cpp
+        src/benchmarks/BenchmarkSetup.cpp
 )
 
 # ======================
