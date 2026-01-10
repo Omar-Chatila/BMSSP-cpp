@@ -206,10 +206,9 @@ void time_dijkstra(Graph& g, const std::vector<const Vertex*>& srcs) {
 void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
     long total = 0;
     for (const Vertex* src : srcs) {
-        auto begin = std::chrono::steady_clock::now();
         BMSSP bmssp(g, src, 6, 7);
+        auto begin = std::chrono::steady_clock::now();
         //BMSSP bmssp(g, src);
-
         auto vertex_dists_dijkstra = bmssp.run();
         auto end = std::chrono::steady_clock::now();
         auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
@@ -220,7 +219,7 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
 }
 
 int main() {
-    auto graph = graph_from_csv("../resources/benchmarks/graph_100000_3", GraphType::DIRECTED);
+    auto graph = graph_from_csv("../resources/graph1000000.csv", GraphType::DIRECTED);
     auto srcs = get_start_vertices(graph, 10);
     std::cout << srcs.size() << std::endl;
     //std::cout << "start dijkstra runs\n";

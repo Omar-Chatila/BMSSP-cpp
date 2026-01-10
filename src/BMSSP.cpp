@@ -5,7 +5,6 @@
 #include <iostream>
 #include <queue>
 #include <ranges>
-#include <stack>
 
 static constexpr double INF = std::numeric_limits<double>::infinity();
 
@@ -20,65 +19,45 @@ BMSSP::BMSSP(Graph &graph, const Vertex *src) : graph_(graph), source_(src) {
         output = true;
     }
     n_ = n;
-    pivot_visited_cache_.reserve(n_);
     pivot_dist_cache_.reserve(n_);
+    pivot_root_cache_.reserve(n_);
+    pivot_tree_sz_cache_.reserve(n_);
     base_dist_cache_.reserve(n_);
 }
 
 BMSSP::BMSSP(Graph &graph, const Vertex *src, const size_t k, const size_t t) : graph_(graph), source_(src), n_(graph.size()), k_(k), t_(t) {
-    pivot_visited_cache_.reserve(n_);
     pivot_dist_cache_.reserve(n_);
+    pivot_root_cache_.reserve(n_);
+    pivot_tree_sz_cache_.reserve(n_);
     base_dist_cache_.reserve(n_);
 }
 
-inline void dfs(const uint64_t root_id,
-                const std::vector<std::vector<uint64_t>>& children,
-                std::vector<size_t>& subtree_size) {
-    std::stack<uint64_t> stack;
-    stack.push(root_id);
-
-    while (!stack.empty()) {
-        const uint64_t u = stack.top();
-        if (subtree_size[u] == 0) {
-            bool all_children_processed = true;
-            size_t total = 1;
-
-            for (uint64_t child : children[u]) {
-                if (subtree_size[child] == 0) {
-                    all_children_processed = false;
-                    stack.push(child);
-                } else {
-                    total += subtree_size[child];
-                }
-            }
-
-            if (all_children_processed) {
-                subtree_size[u] = total;
-                stack.pop();
-            }
-        } else {
-            stack.pop();
-        }
-    }
-}
 std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, const double B) const {
+    // with the help of https://github.com/lcs147/bmssp/blob/master/bmssp.hpp
     pivot_dist_cache_.assign(n_, INF);
-    pivot_visited_cache_.assign(n_, false);
     for (const auto& [vtx, v_dist] : S) {
         pivot_dist_cache_[vtx->id_] = v_dist;
-        pivot_visited_cache_[vtx->id_] = true;
     }
 
     VertexSet W = S;
     VertexSet W_prev = S;
+
+    pivot_root_cache_.assign(n_, 0);
+    pivot_tree_sz_cache_.assign(n_, 0);
+
+    for (auto& [u, du] : S) {
+        pivot_root_cache_[u->id_] = u->id_;
+    }
+
     for (size_t i = 1; i <= k_; ++i) {
         VertexSet Wi;
         for (auto [u, d_u] : W_prev) {
             for (auto& [v_id, w_uv] : u->outgoing_edges_) {
                 const Vertex *v = graph_.get_vertex(v_id);
                 const double cand = d_u + w_uv;
-                if (cand < B and (cand < pivot_dist_cache_[v->id_])) {
+                if (cand < B and cand < pivot_dist_cache_[v->id_]) {
                     pivot_dist_cache_[v->id_] = cand;
+                    pivot_root_cache_[v->id_] = pivot_root_cache_[u->id_];
                     Wi.emplace_back(v, cand);
                 }
             }
@@ -93,41 +72,13 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, const dou
         }
     }
 
-    // construct Forest F
-    //std::unordered_map<const Vertex*, std::vector<const Vertex*>> children;
-    std::vector<std::vector<uint64_t>> children;
-    children.reserve(n_);
-    for (size_t i = 0; i < n_; ++i) {
-        children.emplace_back();
-        children.back().reserve(8); // average branching factor
-    }
-    //std::unordered_map<const Vertex*, const Vertex*> parent;
-    std::vector<uint64_t> parent;
-    std::vector<bool> parent_exists;
-
-    for (auto& [u, du] : W) {
-        for (auto& [v_id, w] : u->outgoing_edges_) {
-            const Vertex* v = graph_.get_vertex(v_id);
-            if (!pivot_visited_cache_[v->id_]) continue;
-
-            if (pivot_dist_cache_[v->id_] == du + w) {
-                parent[v->id_] = u->id_;
-                parent_exists[v_id] = true;
-                children[u->id_].push_back(v->id_);
-            }
-        }
-    }
-    //std::unordered_map<const Vertex*, size_t> subtree_size;
-    std::vector<size_t> subtree_size;
-    for (auto& [u, _] : S) {
-        if (!parent_exists[u->id_]) {
-            dfs(u->id_, children,  subtree_size);
-        }
+    for (auto& [vtx, _] : W) {
+        pivot_tree_sz_cache_[pivot_root_cache_[vtx->id_]]++;
     }
 
     VertexSet P;
     for (auto& [u, du] : S) {
-        if (subtree_size[u->id_] >= k_) {
+        if (pivot_tree_sz_cache_[u->id_] >= k_) {
             P.emplace_back(u, du);
         }
     }
