@@ -3,9 +3,10 @@
 Graph::Graph(const GraphType type) : type_(type) {}
 
 void Graph::add_vertex(const uint64_t id) {
-    if (id_map_.contains(id))
+    if (id < id_map_.size())
         return;
     vertices_.emplace_back(id);
+    id_map_.resize(id + 1);
     id_map_[id] = &vertices_.back();
 }
 
@@ -26,7 +27,7 @@ const std::deque<Vertex> &Graph::get_vertices() const {
 }
 
 const Vertex *Graph::get_vertex(const uint64_t id) const {
-    return id_map_.at(id);
+    return id_map_[id];
 }
 
 bool Graph::empty() const {

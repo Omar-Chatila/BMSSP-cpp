@@ -9,6 +9,7 @@
 #include "FibHeap.h"
 #include "Graph.h"
 #include "GraphFactory.h"
+#include "benchmarks/BenchmarkSetup.h"
 
 /*
 size_t dfs(const Vertex* u, std::unordered_map<const Vertex*, std::vector<const Vertex*>>& children,
@@ -48,7 +49,7 @@ void fib_heap_demo() {
 
 void block_list_demo() {
     constexpr int n = 1000;
-    DequeueBlocks D(100, 120);
+    DequeueBlocks D(n, 100, 120);
     std::vector<Vertex*> vertices;
     vertices.reserve(n);
 
@@ -93,18 +94,18 @@ auto get_directed_example() {
     */
 
     Graph g(GraphType::DIRECTED);
-    for (int i = 1; i <= 6; ++i)
+    for (int i = 0; i < 6; ++i)
         g.add_vertex(i);
-    const Vertex* src = g.get_vertex(1);
+    const Vertex* src = g.get_vertex(0);
 
-    g.add_edge(1, 2, 3);
-    g.add_edge(1,3,1);
-    g.add_edge(2,3,2);
-    g.add_edge(2,4,3);
-    g.add_edge(2,5,6);
-    g.add_edge(3,5,2);
-    g.add_edge(5, 6, 1);
-    g.add_edge(6,4,1);
+    g.add_edge(0, 1, 3);
+    g.add_edge(0,2,1);
+    g.add_edge(1,2,2);
+    g.add_edge(1,3,3);
+    g.add_edge(1,4,6);
+    g.add_edge(2,4,2);
+    g.add_edge(4, 5, 1);
+    g.add_edge(5,3,1);
 
     return std::make_pair(std::move(g), src);
 }
@@ -162,12 +163,12 @@ void dijkstra_vs_bmssp_demo(GraphType type) {
     }
     dijkstra_time /= iterations;
 
-    Dijkstra dijkstra(g, src);
-    auto vertex_dists_dijkstra = dijkstra.run();
-    for (const auto& [v, v_dist] : vertex_dists_dijkstra) {
-        std::cout << "Shortest path from " << src->id_ << " to " << v->id_ << " is " << v_dist << "\n";
+    const Dijkstra dijkstra(g, src);
+    const auto vertex_dists_dijkstra = dijkstra.run();
+    for (size_t i = 0; i < vertex_dists_dijkstra.size(); ++i) {
+        std::cout << "Shortest path from " << src->id_ << " to " << i << " is " << vertex_dists_dijkstra[i] << "\n";
     }
-    std::cout << "Dijkstra execution took " << dijkstra_time << "ns\n\n";
+    std::cout << "Dijkstra execution took " << dijkstra_time << " ns\n\n";
 
     std::cout << "BMSSP: " << "\n";
     long bmssp_time = 0;
@@ -176,17 +177,17 @@ void dijkstra_vs_bmssp_demo(GraphType type) {
         BMSSP bmssp(g, src);
         auto vertex_dists_bmssp = bmssp.run();
         auto end = std::chrono::steady_clock::now();
-        auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+        const auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
         bmssp_time += time;
     }
     bmssp_time /= iterations;
 
     BMSSP bmssp(g, src);
-    auto vertex_dists_bmssp = bmssp.run();
-    for (const auto& [v, v_dist] : vertex_dists_bmssp) {
-        std::cout << "Shortest path from " << src->id_ << " to " << v->id_ << " is " << v_dist << "\n";
+    const auto vertex_dists_bmssp = bmssp.run();
+    for (size_t i = 0; i < vertex_dists_bmssp.size(); ++i) {
+        std::cout << "Shortest path from " << src->id_ << " to " << i << " is " << vertex_dists_bmssp[i] << "\n";
     }
-    std::cout << "BMSSP execution took " << bmssp_time << "ns\n";
+    std::cout << "BMSSP execution took " << bmssp_time << " ns\n";
 }
 
 void time_dijkstra(Graph& g, const std::vector<const Vertex*>& srcs) {
@@ -206,11 +207,15 @@ void time_dijkstra(Graph& g, const std::vector<const Vertex*>& srcs) {
 void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
     long total = 0;
     for (const Vertex* src : srcs) {
+        //BMSSP bmssp(g, src, 8, 3);
         auto begin = std::chrono::steady_clock::now();
         BMSSP bmssp(g, src);
         auto vertex_dists_dijkstra = bmssp.run();
         auto end = std::chrono::steady_clock::now();
         auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+        if (bmssp.has_exec_failed()) {
+            std::cout << "execution failed\n";
+        }
         total += time;
     }
     const size_t n = srcs.size();
@@ -218,8 +223,10 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
 }
 
 int main() {
-    auto graph = graph_from_csv("../resources/graph1000.csv", GraphType::DIRECTED);
-    auto srcs = get_start_vertices(graph, 10);
+    run_benchmarks();
+    return 0;
+    auto graph = graph_from_csv("/home/omar/CLionProjects/algo_seminar/resources/benchmarks/undirected_4096_2", GraphType::UNDIRECTED);
+    auto srcs = get_start_vertices(graph, 1);
     std::cout << srcs.size() << std::endl;
     //std::cout << "start dijkstra runs\n";
     //time_dijkstra(graph, srcs);
