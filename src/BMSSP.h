@@ -19,21 +19,22 @@ private:
     mutable std::vector<size_t> pivot_tree_sz_cache_;
     mutable std::vector<double> base_dist_cache_;
 
-
+    bool execution_failed_;
 
     [[nodiscard]]
     std::pair<VertexSet, VertexSet> find_pivots(const VertexSet& S, double B) const;
 
     std::pair<double, VertexSet> base_case(Pair& S, double B, int l) const;
 
-    std::pair<double, VertexSet> bmssp(int l, double B, VertexSet& S) const;
+    std::pair<double, VertexSet> bmssp(int l, double B, VertexSet& S);
 public:
     BMSSP(Graph& graph, const Vertex* src);
 
     BMSSP(Graph& graph, const Vertex* src, size_t k, size_t t);
 
-    [[nodiscard]]
-    std::vector<double> run() const;
+    bool has_exec_failed() const;
+
+    std::vector<double> run();
 };
 
 

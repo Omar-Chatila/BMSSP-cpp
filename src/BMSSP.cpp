@@ -12,8 +12,8 @@ static bool output = false;
 
 BMSSP::BMSSP(Graph &graph, const Vertex *src) : graph_(graph), source_(src) {
     const size_t n = graph.get_vertices().size();
-    k_ = static_cast<size_t>(std::pow(std::log(n), 1.0/3.0));
-    t_ = static_cast<size_t>(std::pow(std::log(n), 2.0/3.0));
+    k_ = static_cast<size_t>(std::pow(std::log2(n), 1.0/3.0));
+    t_ = static_cast<size_t>(std::pow(std::log2(n), 2.0/3.0));
     if (!output) {
         std::cout << "k: " << k_ << " t: " << t_ << std::endl;
         output = true;
@@ -23,6 +23,7 @@ BMSSP::BMSSP(Graph &graph, const Vertex *src) : graph_(graph), source_(src) {
     pivot_root_cache_.reserve(n_);
     pivot_tree_sz_cache_.reserve(n_);
     base_dist_cache_.reserve(n_);
+    execution_failed_ = false;
 }
 
 BMSSP::BMSSP(Graph &graph, const Vertex *src, const size_t k, const size_t t) : graph_(graph), source_(src), n_(graph.size()), k_(k), t_(t) {
@@ -30,6 +31,7 @@ BMSSP::BMSSP(Graph &graph, const Vertex *src, const size_t k, const size_t t) : 
     pivot_root_cache_.reserve(n_);
     pivot_tree_sz_cache_.reserve(n_);
     base_dist_cache_.reserve(n_);
+    execution_failed_ = false;
 }
 
 std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, const double B) const {
@@ -120,8 +122,12 @@ std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B, const int
     return {B, U};
 }
 
-std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
+std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) {
     if (l == 0) {
+        if (S.empty()) {
+            execution_failed_ = true;
+            return {};
+        }
         return base_case(S[0], B, l);
     }
     std::vector dist(n_, INF);
@@ -144,6 +150,8 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
         ++i;
         auto [Si, Bi] = D.pull();
         auto [Bi_prime, Ui] = bmssp(l - 1, Bi, Si);
+        if (execution_failed_)
+            break;
         B_prime = std::min(B_prime, Bi_prime);
         U.insert(U.end(), Ui.begin(), Ui.end());
         VertexSet K;
@@ -174,6 +182,11 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
         }
         D.batch_prepend(batch, Bi);
     }
+    if (execution_failed_) {
+        std::cerr << "Execution failed" << std::endl;
+        return {};
+    }
+
     VertexSet result = U;
     for (auto& [vtx, dv] : W) {
         if ( dist[vtx->id_] < B_prime) {
@@ -183,16 +196,21 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) const {
     return {B_prime, result};
 }
 
-std::vector<double> BMSSP::run() const {
+std::vector<double> BMSSP::run() {
     const int l = std::ceil(std::log(graph_.get_vertices().size()) / static_cast<double>(t_));
     VertexSet S;
     S.emplace_back(source_, 0.0);
     constexpr double B = INF;
     auto [_, v_set] = bmssp(l, B, S);
+    if (execution_failed_) return {};
  
     std::vector<double> result(n_);
     for (const auto& [vtx, v_dist] : v_set) {
         result[vtx->id_] = v_dist;
     }
     return result;
+}
+
+bool BMSSP::has_exec_failed() const {
+    return execution_failed_;
 }
