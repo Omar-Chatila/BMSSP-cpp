@@ -87,7 +87,7 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, const dou
     return {P, W};
 }
 
-std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B, const int l) const {
+std::pair<double, VertexSet> BMSSP::base_case(const Pair& S, const double B, const int l) const {
     base_dist_cache_.assign(n_, INF);
     auto& [v_ptr, v_dist] = S;
     base_dist_cache_[v_ptr->id_] = v_dist;
@@ -122,7 +122,7 @@ std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B, const int
     return {B, U};
 }
 
-std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) {
+std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, const VertexSet &S) {
     if (l == 0) {
         if (S.empty()) {
             execution_failed_ = true;
@@ -187,7 +187,7 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) {
         return {};
     }
 
-    VertexSet result = U;
+    VertexSet& result = U;
     for (auto& [vtx, dv] : W) {
         if ( dist[vtx->id_] < B_prime) {
             result.emplace_back(vtx, dist[vtx->id_]);
