@@ -241,8 +241,8 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
 }
 
 int main() {
-    // run_benchmarks();
-    // return 0;
+    run_benchmarks();
+    return 0;
     auto graph = graph_from_csv("/home/omar/CLionProjects/algo_seminar/resources/graph1000.csv", GraphType::DIRECTED);
     auto srcs = get_start_vertices(graph, 1);
     std::cout << srcs.size() << std::endl;

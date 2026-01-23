@@ -84,10 +84,10 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, const dou
             P.emplace_back(u, du);
         }
     }
-    return {P, W};
+    return {std::move(P), std::move(W)};
 }
 
-std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B, const int l) const {
+std::pair<double, VertexSet> BMSSP::base_case(const Pair& S, const double B, const int l) const {
     base_dist_cache_.assign(n_, INF);
     auto& [v_ptr, v_dist] = S;
     base_dist_cache_[v_ptr->id_] = v_dist;
@@ -122,8 +122,18 @@ std::pair<double, VertexSet> BMSSP::base_case(Pair& S, const double B, const int
     return {B, U};
 }
 
-std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) {
+static void printVertexSet(const VertexSet& V) {
+    for (auto& [vtx, v_B] : V) {
+        std::cout << "(" << vtx->id_ << ": d[v]=" << v_B << "), ";
+    }
+    std::cout << std::endl;
+}
+
+std::pair<double, VertexSet> BMSSP::bmssp(const int l, const double B, const VertexSet &S) {
+    std::cout << "Recursion l: " << l << " B: " << B << std::endl;
+    printVertexSet(S);
     if (l == 0) {
+        std::cout << "l=" << l << ": Enter Base Case\n";
         if (S.empty()) {
             execution_failed_ = true;
             return {};
@@ -134,8 +144,17 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) {
     for (const auto& [vtx, v_dist] : S) {
         dist[vtx->id_] = v_dist;
     }
+    std::cout << "l=" << l << ": Enter find pivots\n";
+
     auto [P, W] = find_pivots(S, B);
+
+    printVertexSet(P);
+    std::cout  << "l=" << l << ": Complete vertices in W:\n";
+    printVertexSet(W);
+
     const auto M = static_cast<size_t>(std::pow(2, (l - 1) * t_));
+
+    std::cout << "l=" << l << ": Initialize DequeBlocks with M=" << M << ", B=" << B << std::endl;
     DequeueBlocks D(n_, M, B);
     double B0_prime = INF;
     for (const auto& [vtx, dist_v] : P) {
@@ -144,16 +163,25 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) {
     }
     size_t i = 0;
     VertexSet U;
-    U.reserve(static_cast<size_t>(static_cast<double>(k_) * std::pow(2, l * t_)));
+    const size_t U_cap = k_ * static_cast<size_t>(std::pow(2, l * t_));
+    U.reserve(U_cap);
     double B_prime = B;
-    while (U.size() < static_cast<size_t>(static_cast<double>(k_) * std::pow(2, l * t_)) and !D.empty()) {
+    while (U.size() < U_cap and !D.empty()) {
         ++i;
         auto [Si, Bi] = D.pull();
+        std::cout << "l=" << l << ": While loop i=" << i << std::endl;
+        std::cout << "l=" << l << ": Call BMSSP with Bi " << Bi << " and Si= " << std::endl;
+        printVertexSet(Si);
+
         auto [Bi_prime, Ui] = bmssp(l - 1, Bi, Si);
+        std::cout << "l=" << l << ": BMSSP result: Bi = " << Bi << "Si= "<< std::endl;
+        printVertexSet(Si);
         if (execution_failed_)
             break;
         B_prime = std::min(B_prime, Bi_prime);
         U.insert(U.end(), Ui.begin(), Ui.end());
+        std::cout << "l=" << l << ": Bi' = " << Bi_prime << " U=" <<std::endl;
+        printVertexSet(U);
         VertexSet K;
         for (const auto& [u, du] : Ui) {
             for (const auto& [v_id, w_uv] : u->outgoing_edges_) {
@@ -174,12 +202,18 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) {
                 }
             }
         }
+        std::cout << "l=" << l << ": Batch K = " << std::endl;
+        printVertexSet(K);
+
         auto batch = std::list(K.begin(), K.end());
         for (auto& [x, dx] : Si) {
             if (dx >= Bi_prime && dx < Bi) {
                 batch.emplace_back(x, dx);
             }
         }
+        std::cout << "l=" << l << ": Batch K after adding vertices from Si " << std::endl;
+        printVertexSet(K);
+        std::cout << "batch prepend with K and Bi=" << Bi << std::endl;
         D.batch_prepend(batch, Bi);
     }
     if (execution_failed_) {
@@ -187,20 +221,23 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) {
         return {};
     }
 
-    VertexSet result = U;
+    std::cout << "l = " << l << "BMSSP result after adding vertices from W to U:\n";
+    VertexSet& result = U;
     for (auto& [vtx, dv] : W) {
-        if ( dist[vtx->id_] < B_prime) {
+        if (dist[vtx->id_] < B_prime) {
             result.emplace_back(vtx, dist[vtx->id_]);
         }
     }
-    return {B_prime, result};
+    return {B_prime, std::move(result)};
 }
 
 std::vector<double> BMSSP::run() {
+    std::cout << "BASE CALL: " << std::endl;
     const int l = std::ceil(std::log(graph_.get_vertices().size()) / static_cast<double>(t_));
     VertexSet S;
     S.emplace_back(source_, 0.0);
     constexpr double B = INF;
+    std::cout << "    S = {(v0, 0.0)}, B = INF, l = " << l << std::endl;
     auto [_, v_set] = bmssp(l, B, S);
     if (execution_failed_) return {};
  
