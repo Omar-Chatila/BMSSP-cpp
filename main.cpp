@@ -110,6 +110,24 @@ auto get_directed_example() {
     return std::make_pair(std::move(g), src);
 }
 
+auto get_directed_example2() {
+    Graph g(GraphType::DIRECTED);
+    for (int i = 0; i <= 5; ++i)
+        g.add_vertex(i);
+    const Vertex* src = g.get_vertex(0);
+    g.add_edge(0, 1, 2);
+    g.add_edge(0, 2, 4);
+    g.add_edge(1,2,1);
+    g.add_edge(1,3,1);
+    g.add_edge(1,3,3);
+    g.add_edge(2, 3, 1);
+    g.add_edge(2, 4, 3);
+    g.add_edge(3, 4, 1);
+    g.add_edge(4, 5, 2);
+
+    return std::make_pair(std::move(g), src);
+}
+
 auto get_undirected_example() {
     /*
      * https://www.researchgate.net/figure/Example-Graph-for-dynamic-Dijkstra-algorithm_fig5_323578961
@@ -207,7 +225,7 @@ void time_dijkstra(Graph& g, const std::vector<const Vertex*>& srcs) {
 void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
     long total = 0;
     for (const Vertex* src : srcs) {
-        //BMSSP bmssp(g, src, 8, 3);
+        //BMSSP bmssp(g, src, 6, 7);
         auto begin = std::chrono::steady_clock::now();
         BMSSP bmssp(g, src);
         auto vertex_dists_dijkstra = bmssp.run();
@@ -223,13 +241,13 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
 }
 
 int main() {
-    run_benchmarks();
-    return 0;
-    auto graph = graph_from_csv("/home/omar/CLionProjects/algo_seminar/resources/benchmarks/undirected_4096_2", GraphType::UNDIRECTED);
+    // run_benchmarks();
+    // return 0;
+    auto graph = graph_from_csv("/home/omar/CLionProjects/algo_seminar/resources/graph1000.csv", GraphType::DIRECTED);
     auto srcs = get_start_vertices(graph, 1);
     std::cout << srcs.size() << std::endl;
     //std::cout << "start dijkstra runs\n";
-    //time_dijkstra(graph, srcs);
+    time_dijkstra(graph, srcs);
     std::cout << "start bmssp runs\n";
     time_bmssp(graph, srcs);
     return 0;

@@ -319,7 +319,7 @@ public:
         return {result, x};
     }
 
-    bool empty() const {
+    [[nodiscard]] bool empty() const {
         return D0_.empty() && D1_.empty();
     }
 };

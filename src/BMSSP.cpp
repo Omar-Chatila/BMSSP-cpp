@@ -137,7 +137,7 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) {
     auto [P, W] = find_pivots(S, B);
     const auto M = static_cast<size_t>(std::pow(2, (l - 1) * t_));
     DequeueBlocks D(n_, M, B);
-    double B0_prime = std::numeric_limits<double>::infinity();
+    double B0_prime = INF;
     for (const auto& [vtx, dist_v] : P) {
         D.insert(vtx, dist_v);
         B0_prime = std::min(B0_prime, dist_v);
@@ -155,8 +155,8 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, VertexSet &S) {
         B_prime = std::min(B_prime, Bi_prime);
         U.insert(U.end(), Ui.begin(), Ui.end());
         VertexSet K;
-        for (auto [u, du] : Ui) {
-            for (auto [v_id, w_uv] : u->outgoing_edges_) {
+        for (const auto& [u, du] : Ui) {
+            for (const auto& [v_id, w_uv] : u->outgoing_edges_) {
                 const Vertex *v = graph_.get_vertex(v_id);
                 const double cand = du + w_uv;
                 if (cand < dist[v->id_]) {
