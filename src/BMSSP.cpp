@@ -137,10 +137,8 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, const VertexSet &S) {
     auto [P, W] = find_pivots(S, B);
     const auto M = static_cast<size_t>(std::pow(2, (l - 1) * t_));
     DequeueBlocks D(n_, M, B);
-    double B0_prime = INF;
     for (const auto& [vtx, dist_v] : P) {
         D.insert(vtx, dist_v);
-        B0_prime = std::min(B0_prime, dist_v);
     }
     size_t i = 0;
     VertexSet U;
