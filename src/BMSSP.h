@@ -24,9 +24,9 @@ private:
     [[nodiscard]]
     std::pair<VertexSet, VertexSet> find_pivots(const VertexSet& S, double B) const;
 
-    std::pair<double, VertexSet> base_case(Pair& S, double B, int l) const;
+    std::pair<double, VertexSet> base_case(const Pair& S, double B, int l) const;
 
-    std::pair<double, VertexSet> bmssp(int l, double B, VertexSet& S);
+    std::pair<double, VertexSet> bmssp(int l, double B, const VertexSet& S);
 public:
     BMSSP(Graph& graph, const Vertex* src);
 
