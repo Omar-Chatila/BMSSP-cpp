@@ -8,17 +8,12 @@
 
 static constexpr double INF = std::numeric_limits<double>::infinity();
 
-static bool output = false;
 
 BMSSP::BMSSP(Graph &graph, const Vertex *src) : graph_(graph), source_(src) {
-    const size_t n = graph.get_vertices().size();
-    k_ = static_cast<size_t>(std::pow(std::log2(n), 1.0/3.0));
-    t_ = static_cast<size_t>(std::pow(std::log2(n), 2.0/3.0));
-    if (!output) {
-        std::cout << "k: " << k_ << " t: " << t_ << std::endl;
-        output = true;
-    }
-    n_ = n;
+    n_ = graph.get_vertices().size();
+    k_ = static_cast<size_t>(std::pow(std::log2(n_), 1.0/3.0));
+    t_ = static_cast<size_t>(std::pow(std::log2(n_), 2.0/3.0));
+
     pivot_dist_cache_.reserve(n_);
     pivot_root_cache_.reserve(n_);
     pivot_tree_sz_cache_.reserve(n_);
@@ -47,7 +42,7 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, const dou
     pivot_root_cache_.assign(n_, 0);
     pivot_tree_sz_cache_.assign(n_, 0);
 
-    for (auto& [u, du] : S) {
+    for (const auto& [u, du] : S) {
         pivot_root_cache_[u->id_] = u->id_;
     }
 
@@ -74,7 +69,7 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, const dou
         }
     }
 
-    for (auto& [vtx, _] : W) {
+    for (const auto& [vtx, _] : W) {
         pivot_tree_sz_cache_[pivot_root_cache_[vtx->id_]]++;
     }
 

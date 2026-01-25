@@ -13,7 +13,7 @@ struct Pair {
     const Vertex* key_;
     double value_;
 
-    bool operator<(const Pair& o) const {
+    bool operator<(const Pair& o) const noexcept {
         return this->value_ < o.value_;
     }
 
@@ -123,7 +123,7 @@ public:
         // if a block in D1 becomes empty after deletion, we need to remove its upper bound in the binary search tree
         if (block_it->elems_.empty()) {
             if (block_it->owner_ == BlockOwner::D1) {
-                auto tree_it = D1_tree_.find(block_it->upper_);
+                const auto tree_it = D1_tree_.find(block_it->upper_);
                 if (tree_it != D1_tree_.end() && tree_it->second == block_it)
                     D1_tree_.erase(tree_it);
                 D1_.erase(block_it);
@@ -245,7 +245,7 @@ public:
     /*
     Pull Return a subset S′ of keys where |S′| ≤ M associated with the smallest |S′| values and an upper
     bound x that separates S′ from the remaining values in the data structure, in amortized O(|S′|) time.
-    Specifically, if there are no remaining values, x should be B. Otherwise, x should satisfy 
+    Specifically, if there are no remaining values, x should be B. Otherwise, x should satisfy
     max(S′) < x ≤ min(D) where D is the set of elements in the data structure after the pull operation.
     */
     std::pair<std::vector<Pair>, double> pull() {
@@ -299,12 +299,7 @@ public:
         const auto m_th = candidates.begin() + M_;
         std::ranges::nth_element(candidates, m_th,
                                  [](const Pair* a, const Pair* b) { return a->value_ < b->value_; });
-
-        // Set returned value x to the smallest remaining value in D0 ∪ D1
-        double x = std::numeric_limits<double>::infinity();
-        for (size_t i = M_; i < candidates.size(); ++i)
-            x = std::min(x, candidates[i]->value_);
-
+        
         std::vector<Pair> result;
         result.reserve(M_);
         for (size_t i = 0; i < M_; ++i) {
@@ -315,11 +310,16 @@ public:
             const auto* element = candidates[i];
             erase(key_poses_[element->key_->id_], element->key_);
         }
+        
+        // Set returned value x to the smallest remaining value in D0 ∪ D1
+        double x = std::numeric_limits<double>::infinity();
+        for (size_t i = M_; i < candidates.size(); ++i)
+            x = std::min(x, candidates[i]->value_);
 
-        return {result, x};
+        return {std::move(result), x};
     }
 
-    bool empty() const {
+    [[nodiscard]] bool empty() const {
         return D0_.empty() && D1_.empty();
     }
 };

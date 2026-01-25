@@ -223,15 +223,39 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
 }
 
 int main() {
-    run_benchmarks();
-    return 0;
-    auto graph = graph_from_csv("/home/omar/CLionProjects/algo_seminar/resources/benchmarks/undirected_4096_2", GraphType::UNDIRECTED);
-    auto srcs = get_start_vertices(graph, 1);
-    std::cout << srcs.size() << std::endl;
-    //std::cout << "start dijkstra runs\n";
-    //time_dijkstra(graph, srcs);
-    std::cout << "start bmssp runs\n";
-    time_bmssp(graph, srcs);
-    return 0;
+    Graph g(GraphType::UNDIRECTED);
+    for (int i = 0; i <= 6; ++i) {
+        g.add_vertex(i);
+    }
+    g.add_edge(0, 3, 1);
+    g.add_edge(1, 3, 10);
+    g.add_edge(2, 4, 10);
+    g.add_edge(3, 4, 1);
+    g.add_edge(4, 5, 1);
+    g.add_edge(5, 6, 1);
+    const Vertex* src = g.get_vertex(0);
+    BMSSP bmssp(g, src);
+    const Vertex* s1 = src;
+    const Vertex* s2 = g.get_vertex(1);
+    const Vertex* s3 = g.get_vertex(2);
+    // auto [P, W] = bmssp.find_pivots({{s1, 0}, {s2, 0}, {s3, 0}}, 6);
+    // for (auto [k, v] : P) {
+    //     std::cout << k->id_ << ": " << v << ", ";
+    // }
+    // std::cout << "\n";
+    // for (auto [k, v] : W) {
+    //     std::cout << k->id_ << ": " << v << ", ";
+    // }
+    // return 0;
+    // run_benchmarks();
+    // return 0;
+    // auto graph = graph_from_csv("/home/omar/CLionProjects/algo_seminar/resources/benchmarks/undirected_4096_2", GraphType::UNDIRECTED);
+    // auto srcs = get_start_vertices(graph, 1);
+    // std::cout << srcs.size() << std::endl;
+    // //std::cout << "start dijkstra runs\n";
+    // //time_dijkstra(graph, srcs);
+    // std::cout << "start bmssp runs\n";
+    // time_bmssp(graph, srcs);
+    // return 0;
 }
 
