@@ -944,4 +944,14 @@ namespace tests::dq {
 
         std::cout << "\nAll erase tests passed!" << std::endl;
     }
+
+    void run_all_tests() {
+        initialization_test();
+        insert_test();
+        batch_prepend_test();
+        erase_test();
+        std::cout << "\n############################\n";
+        std::cout << "#### All Tests passed! #####\n";
+        std::cout << "############################\n";
+    }
 }
