@@ -10,6 +10,8 @@
 #include "Graph.h"
 #include "GraphFactory.h"
 #include "benchmarks/BenchmarkSetup.h"
+#include "tests/tests.h"
+
 
 /*
 size_t dfs(const Vertex* u, std::unordered_map<const Vertex*, std::vector<const Vertex*>>& children,
@@ -48,7 +50,7 @@ void fib_heap_demo() {
 }
 
 void block_list_demo() {
-    constexpr int n = 1000;
+    constexpr int n = 10000;
     DequeueBlocks D(n, 100, 120);
     std::vector<Vertex*> vertices;
     vertices.reserve(n);
@@ -61,7 +63,7 @@ void block_list_demo() {
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> distrib(min, max);
 
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < 10000; ++i) {
         const int randomValue = distrib(gen);
         std::cout << randomValue << std::endl;
         vertices.push_back(new Vertex(i));
@@ -168,7 +170,7 @@ auto get_undirected_example() {
 void dijkstra_vs_bmssp_demo(GraphType type) {
     auto [g, src] = type == GraphType::DIRECTED ? get_directed_example() : get_undirected_example();
     std::cout << "Dijkstra: " << "\n";
-    constexpr int iterations = 1000;
+    constexpr int iterations = 10000;
 
     long dijkstra_time = 0;
     for (int i = 0; i < iterations; ++i) {
@@ -239,11 +241,90 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
     const size_t n = srcs.size();
     std::cout << "Total run time avg over " << n << " runs: " << static_cast<double>(total) / n << " us";
 }
-
 int main() {
-    run_benchmarks();
-    // return 0;
+    tests::dq::test_pull_bounds();
+    // Graph g(GraphType::DIRECTED);
+    // for (int i = 0; i <= 5; ++i) {
+    //     g.add_vertex(i);
+    // }
+    //
+    //  g.add_edge(0, 1, 3);
+    //  g.add_edge(0, 2, 1);
+    //  g.add_edge(1, 2, 2);
+    //  g.add_edge(1, 3, 3);
+    //  g.add_edge(1, 4, 6);
+    //  g.add_edge(2, 4, 2);
+    //  g.add_edge(4, 5, 1);
+    //  g.add_edge(5, 3, 1);
+    //
+    // const Vertex* src = g.get_vertex(0);
+    Graph g(GraphType::DIRECTED);
 
-    return 0;
+    for (int i = 0; i <= 11; ++i) {
+        g.add_vertex(i);
+    }
+
+    srand(0);
+
+    g.add_edge(0, 1, 2 + (double)(rand() % 10000) / 1E8);
+    g.add_edge(0, 2, 2 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(0, 3, 3 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(1, 4, 2 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(1, 5, 3 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(2, 5, 2 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(2, 6, 3 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(3, 4, 1 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(3, 6, 2 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(4, 7, 2 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(4, 8, 3 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(5, 8, 2 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(5, 9, 3 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(6, 8, 1 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(6, 9, 2 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(6, 10, 3 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(7, 10, 2 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(7, 11, 3 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(8, 11, 2 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(9, 11, 1 +  (double)(rand() % 10000) / 1E8);
+
+    const Vertex* src = g.get_vertex(0);
+    BMSSP bmssp(g, src);
+    const auto res = bmssp.run();
+
+    for (auto i : res) {
+        std::cout << i << std::endl;
+    }
+
+    // const Vertex* s1 = src;
+    // const Vertex* s2 = g.get_vertex(1);
+    // const Vertex* s3 = g.get_vertex(2);
+    // auto [P, W] = bmssp.find_pivots({{s1, 0}, {s2, 0}, {s3, 0}}, 6);
+    // for (auto [k, v] : P) {
+    //     std::cout << k->id_ << ": " << v << ", ";
+    // }
+    // std::cout << "\n";
+    // for (auto [k, v] : W) {
+    //     std::cout << k->id_ << ": " << v << ", ";
+    // }
+    // return 0;
+    // run_benchmarks();
+    // return 0;
+    // auto graph = graph_from_csv("/home/omar/CLionProjects/algo_seminar/resources/benchmarks/undirected_4096_2", GraphType::UNDIRECTED);
+    // auto srcs = get_start_vertices(graph, 1);
+    // std::cout << srcs.size() << std::endl;
+    // //std::cout << "start dijkstra runs\n";
+    // //time_dijkstra(graph, srcs);
+    // std::cout << "start bmssp runs\n";
+    // time_bmssp(graph, srcs);
+    // return 0;
 }
 

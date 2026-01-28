@@ -34,6 +34,8 @@ target_sources(algo_seminar INTERFACE
         src/Dijkstra.cpp
         src/BMSSP.cpp
         src/benchmarks/BenchmarkSetup.cpp
+
+        tests/BlocksDQTest.cpp
 )
 
 # ======================
