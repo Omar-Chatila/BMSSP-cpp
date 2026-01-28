@@ -280,7 +280,7 @@ int main() {
 
     const Vertex* src = g.get_vertex(0);
     BMSSP bmssp(g, src);
-    auto res = bmssp.run();
+    const auto res = bmssp.run();
 
     for (auto i : res) {
         std::cout << i << std::endl;
