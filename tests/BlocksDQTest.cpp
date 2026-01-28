@@ -339,6 +339,29 @@ namespace tests::dq {
     void batch_prepend_test() {
         std::cout << "=== Testing batch_prepend ===" << std::endl;
 
+        /*
+         *
+        *[DQ] Init: N: 6, M: 1, B: inf
+        [DQ] Insert: 0: 0
+        [DQ] Insert: 2: 1
+        Bi : inf
+        Pulled Vertices: 0,
+        B: 3 Vertices: 0,
+        Bi prime 3 Complete v: 0,
+        [DQ] Erase: 0
+
+         */
+        {
+            DequeueBlocks D(6, 1, std::numeric_limits<double>::infinity());
+            Vertex* v = new Vertex(0);
+            Vertex* v2 = new Vertex(2);
+            D.insert(v, 0);
+            D.insert(v2, 1);
+            D.pull();
+            D.erase(v);
+
+        }
+
         // Test 1: Small batch (L ≤ M)
         {
             std::cout << "Test 1: Small batch (L ≤ M)" << std::endl;

@@ -10,6 +10,8 @@
 #include "Graph.h"
 #include "GraphFactory.h"
 #include "benchmarks/BenchmarkSetup.h"
+#include "tests/tests.h"
+
 
 /*
 size_t dfs(const Vertex* u, std::unordered_map<const Vertex*, std::vector<const Vertex*>>& children,
@@ -221,23 +223,33 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
     const size_t n = srcs.size();
     std::cout << "Total run time avg over " << n << " runs: " << static_cast<double>(total) / n << " us";
 }
-
 int main() {
-    Graph g(GraphType::UNDIRECTED);
-    for (int i = 0; i <= 6; ++i) {
-        g.add_vertex(i);
-    }
-    g.add_edge(0, 3, 1);
-    g.add_edge(1, 3, 10);
-    g.add_edge(2, 4, 10);
-    g.add_edge(3, 4, 1);
-    g.add_edge(4, 5, 1);
-    g.add_edge(5, 6, 1);
-    const Vertex* src = g.get_vertex(0);
+    // Graph g(GraphType::DIRECTED);
+    // for (int i = 0; i <= 5; ++i) {
+    //     g.add_vertex(i);
+    // }
+    //
+    //  g.add_edge(0, 1, 3);
+    //  g.add_edge(0, 2, 1);
+    //  g.add_edge(1, 2, 2);
+    //  g.add_edge(1, 3, 3);
+    //  g.add_edge(1, 4, 6);
+    //  g.add_edge(2, 4, 2);
+    //  g.add_edge(4, 5, 1);
+    //  g.add_edge(5, 3, 1);
+    //
+    // const Vertex* src = g.get_vertex(0);
+    auto [g, src] = get_directed_example();
     BMSSP bmssp(g, src);
-    const Vertex* s1 = src;
-    const Vertex* s2 = g.get_vertex(1);
-    const Vertex* s3 = g.get_vertex(2);
+    auto res = bmssp.run();
+
+    for (auto i : res) {
+        std::cout << i << std::endl;
+    }
+
+    // const Vertex* s1 = src;
+    // const Vertex* s2 = g.get_vertex(1);
+    // const Vertex* s3 = g.get_vertex(2);
     // auto [P, W] = bmssp.find_pivots({{s1, 0}, {s2, 0}, {s3, 0}}, 6);
     // for (auto [k, v] : P) {
     //     std::cout << k->id_ << ": " << v << ", ";

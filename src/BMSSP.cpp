@@ -14,27 +14,21 @@ BMSSP::BMSSP(Graph &graph, const Vertex *src) : graph_(graph), source_(src) {
     k_ = static_cast<size_t>(std::pow(std::log2(n_), 1.0/3.0));
     t_ = static_cast<size_t>(std::pow(std::log2(n_), 2.0/3.0));
 
-    pivot_dist_cache_.reserve(n_);
     pivot_root_cache_.reserve(n_);
     pivot_tree_sz_cache_.reserve(n_);
-    base_dist_cache_.reserve(n_);
+    dist_cache_.assign(n_, INF);
     execution_failed_ = false;
 }
 
 BMSSP::BMSSP(Graph &graph, const Vertex *src, const size_t k, const size_t t) : graph_(graph), source_(src), n_(graph.size()), k_(k), t_(t) {
-    pivot_dist_cache_.reserve(n_);
     pivot_root_cache_.reserve(n_);
     pivot_tree_sz_cache_.reserve(n_);
-    base_dist_cache_.reserve(n_);
+    dist_cache_.assign(n_, INF);
     execution_failed_ = false;
 }
 
 std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, const double B) const {
     // with the help of https://github.com/lcs147/bmssp/blob/master/bmssp.hpp
-    pivot_dist_cache_.assign(n_, INF);
-    for (const auto& [vtx, v_dist] : S) {
-        pivot_dist_cache_[vtx->id_] = v_dist;
-    }
 
     VertexSet W = S;
     VertexSet W_prev = S;
@@ -52,10 +46,12 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, const dou
             for (const auto& [v_id, w_uv] : u->outgoing_edges_) {
                 const Vertex *v = graph_.get_vertex(v_id);
                 const double cand = d_u + w_uv;
-                if (cand < B and cand < pivot_dist_cache_[v->id_]) {
-                    pivot_dist_cache_[v->id_] = cand;
-                    pivot_root_cache_[v->id_] = pivot_root_cache_[u->id_];
-                    Wi.emplace_back(v, cand);
+                if (cand < B and cand <= dist_cache_[v->id_]) {
+                    dist_cache_[v->id_] = cand;
+                    if (dist_cache_[v->id_] < B) {
+                        pivot_root_cache_[v->id_] = pivot_root_cache_[u->id_];
+                        Wi.emplace_back(v, cand);
+                    }
                 }
             }
         }
@@ -65,6 +61,16 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, const dou
         W_prev = std::move(Wi);
 
         if (W.size() > k_ * S.size()) {
+            std::cout << "Pivots: ";
+            for (auto p : S) {
+                std::cout << p.key_->id_ << ", ";
+            }
+            std::cout << std::endl;
+            std::cout << "Visited: ";
+            for (auto p : W) {
+                std::cout << p.key_->id_ << ", ";
+            }
+            std::cout << std::endl;
             return {S, std::move(W)};
         }
     }
@@ -80,13 +86,21 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, const dou
             P.emplace_back(u, du);
         }
     }
+    std::cout << "Pivots: ";
+    for (auto p : S) {
+        std::cout << p.key_->id_ << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "Visited: ";
+    for (auto p : W) {
+        std::cout << p.key_->id_ << ", ";
+    }
+    std::cout << std::endl;
     return {P, W};
 }
 
-std::pair<double, VertexSet> BMSSP::base_case(const Pair& S, const double B, const int l) const {
-    base_dist_cache_.assign(n_, INF);
+std::pair<double, VertexSet> BMSSP::base_case(const Pair &S, const double B) const {
     const auto& [v_ptr, v_dist] = S;
-    base_dist_cache_[v_ptr->id_] = v_dist;
 
     std::priority_queue<Pair, VertexSet, std::function<bool(const Pair&, const Pair&)>> H(
         [](const Pair& a, const Pair& b) {
@@ -95,27 +109,41 @@ std::pair<double, VertexSet> BMSSP::base_case(const Pair& S, const double B, con
     H.emplace(v_ptr, v_dist);
 
     VertexSet U;
-    U.reserve(static_cast<size_t>(static_cast<double>(k_) * std::pow(2, l * t_)));
+    U.reserve(k_ + 1);
 
-    while (!H.empty()) {
-        const auto& [u, d_u] = H.top();
+    while (!H.empty() && U.size() < k_ + 1) {
+        const auto [u, d_u] = H.top();
         H.pop();
 
-        if (d_u != base_dist_cache_[u->id_]) continue;
-        if (d_u >= B) break;
+        if (d_u > dist_cache_[u->id_]) continue;
+        //if (d_u >= B) break;
 
         U.emplace_back(u, d_u);
 
         for (const auto& [v_id, w_uv] : u->outgoing_edges_) {
             const Vertex *v = graph_.get_vertex(v_id);
             const double cand = d_u + w_uv;
-            if (cand < B && cand < base_dist_cache_[v->id_]) {
-                base_dist_cache_[v->id_] = cand;
+            if (cand < B && cand <= dist_cache_[v->id_]) {
+                dist_cache_[v->id_] = cand;
                 H.emplace(v, cand);
             }
         }
     }
-    return {B, U};
+    std::cout << "Base Case: ";
+    if (U.size() <= k_) {
+        std::cout << "B: " << B << " Vertices: ";
+        for (auto p : U)
+            std::cout << p.key_->id_ << ", ";
+        std::cout << std::endl;
+        return {B, U};
+    }
+    double B_new = dist_cache_[U.back().key_->id_];
+    U.pop_back();
+    std::cout << "B: " << B_new << " Vertices: ";
+    for (auto p : U)
+        std::cout << p.key_->id_ << ", ";
+    std::cout << std::endl;
+    return {B_new, U};
 }
 
 std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, const VertexSet &S) {
@@ -124,38 +152,50 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, const VertexSet &S) {
             execution_failed_ = true;
             return {};
         }
-        return base_case(S[0], B, l);
+        return base_case(S[0], B);
     }
-    std::vector dist(n_, INF);
-    for (const auto& [vtx, v_dist] : S) {
-        dist[vtx->id_] = v_dist;
-    }
+
     auto [P, W] = find_pivots(S, B);
     const auto M = static_cast<size_t>(std::pow(2, (l - 1) * t_));
     DequeueBlocks D(n_, M, B);
+    double B_prime = B;
     for (const auto& [vtx, dist_v] : P) {
         D.insert(vtx, dist_v);
+        B_prime = std::min(B_prime, dist_v);
     }
     size_t i = 0;
     VertexSet U;
-    const double cap = std::pow(2, l * t_);
-    U.reserve(static_cast<size_t>(static_cast<double>(k_) * cap));
-    double B_prime = B;
-    while (U.size() < static_cast<size_t>(static_cast<double>(k_) * cap) and !D.empty()) {
+    const auto cap = static_cast<size_t>(std::pow(2, l * t_));
+    U.reserve(W.size() + cap);
+
+    while (U.size() < cap and !D.empty()) {
         ++i;
         auto [Si, Bi] = D.pull();
+
+        std::cout << "Bi : " << Bi << std::endl;
+        std::cout <<"Pulled Vertices: ";
+        for (auto p : Si)
+            std::cout << p.key_->id_ << ", ";
+        std::cout << std::endl;
+
         auto [Bi_prime, Ui] = bmssp(l - 1, Bi, Si);
+
+        std::cout << "Bi prime " << Bi_prime << " Complete v: ";
+        for (auto p : Ui)
+            std::cout << p.key_->id_ << ", ";
+        std::cout << std::endl;
+
         if (execution_failed_)
             break;
-        B_prime = std::min(B_prime, Bi_prime);
         U.insert(U.end(), Ui.begin(), Ui.end());
         VertexSet K;
         for (const auto& [u, du] : Ui) {
+            D.erase(u);
             for (const auto& [v_id, w_uv] : u->outgoing_edges_) {
                 const Vertex *v = graph_.get_vertex(v_id);
                 const double cand = du + w_uv;
-                if (cand < dist[v->id_]) {
-                    dist[v->id_] = cand;
+                if (cand <= dist_cache_[v->id_]) {
+                    dist_cache_[v->id_] = cand;
                     if (cand >= Bi and cand < B) {
                         D.insert(v, cand);
                     } else if (cand >= Bi_prime and cand < Bi) {
@@ -163,45 +203,49 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, const VertexSet &S) {
                     }
                 }
             }
-            for (const auto& [x, dx] : Si) {
-                if (dx >= Bi_prime and dx < Bi) {
-                    K.emplace_back(x, dx);
-                }
-            }
         }
-        auto batch = std::list(K.begin(), K.end());
         for (const auto& [x, dx] : Si) {
-            if (dx >= Bi_prime && dx < Bi) {
-                batch.emplace_back(x, dx);
+            if (dx >= Bi_prime and dx < Bi) {
+                K.emplace_back(x, dx);
             }
         }
-        D.batch_prepend(batch, Bi);
+        D.batch_prepend(K, Bi);
+        B_prime = Bi_prime;
     }
     if (execution_failed_) {
         std::cerr << "Execution failed" << std::endl;
         return {};
     }
+    double resB;
+    if (D.empty()) resB = B;
+    else resB = B_prime;
 
-    VertexSet& result = U;
+
     for (const auto& [vtx, dv] : W) {
-        if ( dist[vtx->id_] < B_prime) {
-            result.emplace_back(vtx, dist[vtx->id_]);
+        if (dist_cache_[vtx->id_] < resB) {
+            U.emplace_back(vtx, dist_cache_[vtx->id_]);
         }
     }
-    return {B_prime, result};
+    std::cout << "Returned B: " << resB << " Complete: " << std::endl;
+    for (auto p : U)
+        std::cout << p.key_->id_ << ", ";
+    std::cout << std::endl;
+    return {resB, U};
 }
 
 std::vector<double> BMSSP::run() {
-    const int l = std::ceil(std::log(n_) / static_cast<double>(t_));
+    const int l = std::ceil(std::log2(n_) / static_cast<double>(t_));
     VertexSet S;
     S.emplace_back(source_, 0.0);
     constexpr double B = INF;
+    dist_cache_[0] = 0;
     auto [_, v_set] = bmssp(l, B, S);
     if (execution_failed_) return {};
  
     std::vector<double> result(n_);
-    for (const auto& [vtx, v_dist] : v_set) {
-        result[vtx->id_] = v_dist;
+    for (int i = 0; i <  dist_cache_.size(); ++i) {
+        result[i] = dist_cache_[i];
+        std::cout << i << ": " << dist_cache_[i] << std::endl;
     }
     return result;
 }

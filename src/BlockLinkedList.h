@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <limits>
 #include <list>
 #include <map>
@@ -14,7 +15,13 @@ struct Pair {
     const Vertex* key_;
     double value_;
 
-    Pair(const Vertex* k, const double v) : key_(k), value_(v) {}
+    static constexpr double SCALE = 1e10;
+
+    static double round_value(const double v) {
+        return std::round(v * SCALE) / SCALE;
+    }
+
+    Pair(const Vertex* k, const double v) : key_(k), value_(round_value(v)) {}
 
     bool operator<(const Pair& o) const noexcept {
         if (value_ != o.value_) return value_ < o.value_;
@@ -38,6 +45,7 @@ struct Block {
 struct BlockRef {
     size_t block_id;
     BlockOwner owner;
+
     bool operator==(const BlockRef& other) const {
         return block_id == other.block_id && owner == other.owner;
     }
@@ -64,8 +72,8 @@ class DequeueBlocks {
     std::multimap<double, BlockRef> D1_tree_;  // Red-Black Tree for D1 blocks
 
     // Key bookkeeping
-    std::vector<KeyPos> key_poses_; // Vertex id to KeyPos
-    std::vector<bool> present_;     // Vertex id to whether KeyPos exists
+    std::vector<KeyPos> key_poses_;
+    std::vector<bool> present_;
 
     // Params
     size_t M_;
@@ -104,7 +112,7 @@ class DequeueBlocks {
         }
     }
 
-    BlockRef create_block(const double upper, const BlockOwner owner, std::vector<Pair>&& elems) {
+    BlockRef create_block(const double upper, const BlockOwner owner) {
         size_t id = next_block_id_++;
         std::list<Block>& deque = get_deque(owner);
         auto& map = get_map(owner);
@@ -118,20 +126,9 @@ class DequeueBlocks {
             map[id] = it;
             D1_tree_.emplace(upper, BlockRef{id, owner});
         } else {
-            // D0 - prepend
-            deque.emplace_front(upper, M_, owner, id);
-            map[id] = deque.begin();
+            deque.emplace_back(upper, M_, owner, id);
+            map[id] = std::prev(deque.end());
         }
-
-        Block& block = *map[id];
-        if (!elems.empty()) {
-            block.elems_ = std::move(elems);
-            // Mark vertices as present
-            for (const auto& p : block.elems_) {
-                present_[p.key_->id_] = true;
-            }
-        }
-
         return {id, owner};
     }
 
@@ -159,33 +156,9 @@ class DequeueBlocks {
 
     static Pair find_median_pair(std::vector<Pair>& elems) {
         assert(!elems.empty());
-        const auto mid = elems.begin() + static_cast<long>(elems.size()) / 2;
+        const auto mid = elems.begin() + elems.size() / 2;
         std::ranges::nth_element(elems, mid, [](const Pair& a, const Pair& b) { return a < b; });
         return *mid;
-    }
-    
-    // Delete(a, b)
-    void erase(const KeyPos& pos, const Vertex* key) {
-        const BlockRef block_ref = pos.block_ref;
-        const size_t elem_idx  = pos.elem_idx;
-        // To delete the key/value pair ⟨a, b⟩, we remove it directly from the linked list
-        Block& block = get_block(block_ref);
-        // Fast removal: swap with last element
-        if (elem_idx != block.elems_.size() - 1) {
-            block.elems_[elem_idx] = block.elems_.back();
-
-            // Update position of the moved element
-            const Vertex* moved_key = block.elems_[elem_idx].key_;
-            key_poses_[moved_key->id_].elem_idx = elem_idx;
-        }
-        // Remove last element
-        block.elems_.pop_back();
-        present_[key->id_] = false;
-
-        // if a block in D1 becomes empty after deletion, we need to remove its upper bound in the binary search tree
-        if (block.elems_.empty()) {
-            delete_block(block_ref);
-        }
     }
 
 public:
@@ -194,7 +167,7 @@ public:
         key_poses_.resize(N);
         present_.resize(N, false);
         // Initialize D1 with a single empty block with upper bound B
-        create_block(B, BlockOwner::D1, {});
+        create_block(B, BlockOwner::D1);
     }
 
     // Insert(a, b)
@@ -212,8 +185,6 @@ public:
         const auto tree_it = D1_tree_.lower_bound(b);
         BlockRef block_ref;
 
-        std::vector to_add = {Pair(a, b)};
-
         if (tree_it == D1_tree_.end()) {
             // Use last block in D1
             if (!D1_map_.empty()) {
@@ -221,7 +192,7 @@ public:
                 block_ref = ref;
             } else {
                 // Create new block if D1 is empty
-                block_ref = create_block(b, BlockOwner::D1, std::move(to_add));
+                block_ref = create_block(b, BlockOwner::D1);
             }
         } else {
             block_ref = tree_it->second;
@@ -249,7 +220,32 @@ public:
         if (block.elems_.size() > M_) split(block_ref);
     }
 
+    // Delete(a, b)
+    void erase(const KeyPos& pos, const Vertex* key) {
+        BlockRef block_ref = pos.block_ref;
+        const size_t elem_idx  = pos.elem_idx;
+        // To delete the key/value pair ⟨a, b⟩, we remove it directly from the linked list
+        Block& block = get_block(block_ref);
+        // Fast removal: swap with last element
+        if (elem_idx != block.elems_.size() - 1) {
+            block.elems_[elem_idx] = std::move(block.elems_.back());
+
+            // Update position of the moved element
+            const Vertex* moved_key = block.elems_[elem_idx].key_;
+            key_poses_[moved_key->id_].elem_idx = elem_idx;
+        }
+        // Remove last element
+        block.elems_.pop_back();
+        present_[key->id_] = false;
+
+        // if a block in D1 becomes empty after deletion, we need to remove its upper bound in the binary search tree
+        if (block.elems_.empty()) {
+            delete_block(block_ref);
+        }
+    }
+
     void erase(const Vertex* v) {
+        if (empty()) return;
         if (present_[v->id_]) {
             const auto pos = key_poses_[v->id_];
             erase(pos, v);
@@ -259,22 +255,22 @@ public:
     void split(const BlockRef& ref) {
         Block& block = get_block(ref);
 
-        // Find median pair
-        const Pair median_pair = find_median_pair(block.elems_);
+        // Find median PAIR
+        Pair median_pair = find_median_pair(block.elems_);
 
         // Create new blocks
-        const BlockRef left_ref = create_block(median_pair.value_, BlockOwner::D1, {});
-        const BlockRef right_ref = create_block(block.upper_, BlockOwner::D1, {});
+        BlockRef left_ref = create_block(median_pair.value_, BlockOwner::D1);
+        BlockRef right_ref = create_block(block.upper_, BlockOwner::D1);
 
         Block& left_block = get_block(left_ref);
         Block& right_block = get_block(right_ref);
 
-        // Partition using Pair comparator
+        // Partition using the median pair for comparison
         for (auto& p : block.elems_) {
-            if (p < median_pair) {
-                left_block.elems_.push_back(p);
+            if (p < median_pair) {  // Use operator< which compares value AND key
+                left_block.elems_.push_back(std::move(p));
             } else {
-                right_block.elems_.push_back(p);
+                right_block.elems_.push_back(std::move(p));
             }
         }
 
@@ -285,44 +281,112 @@ public:
         update_key_pos_for_block(left_ref);
         update_key_pos_for_block(right_ref);
     }
+
     void batch_prepend(std::vector<Pair>& batch, const double b_upper) {
         const size_t L = batch.size();
 
         if (L <= M_) {
-            BlockRef ref = create_block(b_upper, BlockOwner::D0, std::move(batch));
+            BlockRef ref = create_block(b_upper, BlockOwner::D0);
+            Block& block = get_block(ref);
+            block.elems_ = std::move(batch);
+            for (const auto& p : block.elems_) {
+                present_[p.key_->id_] = true;
+            }
             update_key_pos_for_block(ref);
             return;
         }
 
         std::list<std::vector<Pair>> work;
         work.emplace_back(std::move(batch));
-        const size_t target = (M_ + 1) / 2;
+        const size_t target = (M_ + 1) / 2;  // ⌈M/2⌉
 
         while (!work.empty()) {
             auto curr = std::move(work.front());
             work.pop_front();
 
             if (curr.size() <= target) {
-                BlockRef ref = create_block(b_upper, BlockOwner::D0, std::move(curr));
+                BlockRef ref = create_block(b_upper, BlockOwner::D0);
+                Block& block = get_block(ref);
+                block.elems_ = std::move(curr);
                 update_key_pos_for_block(ref);
                 continue;
             }
 
-            // Find median pair
+            // Find median PAIR (not just value)
             Pair median_pair = find_median_pair(curr);
-            std::vector<Pair> lower, upper;
 
-            // Partition using the Pair comparator (compares value then key)
+            // Three-way partition
+            std::vector<Pair> lower, equal, upper;
+
             for (auto& p : curr) {
                 if (p < median_pair) {
                     lower.push_back(std::move(p));
-                } else {
+                } else if (median_pair < p) {
                     upper.push_back(std::move(p));
+                } else {
+                    // p == median_pair (same value AND same key id)
+                    equal.push_back(std::move(p));
                 }
             }
 
-            work.push_front(std::move(lower));
-            work.push_front(std::move(upper));
+            // Now we need to distribute elements to ensure both partitions are non-empty
+            // and each has at most `target` elements
+
+            // Case 1: Both lower and upper are non-empty
+            if (!lower.empty() && !upper.empty()) {
+                // Distribute equal elements to balance
+                size_t total_lower = lower.size() + equal.size();
+                size_t total_upper = upper.size();
+
+                if (total_lower > target || total_upper > target) {
+                    // Need to move some equal elements to upper
+                    while (lower.size() < target && !equal.empty()) {
+                        lower.push_back(std::move(equal.back()));
+                        equal.pop_back();
+                    }
+                    // Remaining equal goes to upper
+                    for (auto& p : equal) {
+                        upper.push_back(std::move(p));
+                    }
+                    equal.clear();
+
+                    // If still too big, recurse
+                    if (lower.size() > target || upper.size() > target) {
+                        work.push_front(std::move(upper));
+                        work.push_front(std::move(lower));
+                    } else {
+                        // Create blocks
+                        if (!lower.empty()) {
+                            BlockRef ref = create_block(b_upper, BlockOwner::D0);
+                            Block& block = get_block(ref);
+                            block.elems_ = std::move(lower);
+                            update_key_pos_for_block(ref);
+                        }
+                        if (!upper.empty()) {
+                            work.push_front(std::move(upper));
+                        }
+                    }
+                    continue;
+                }
+            }
+
+            // Case 2: All elements are equal (or nearly equal)
+            // Just split in the middle
+            size_t split_point = std::min(target, curr.size() - 1);
+            std::vector<Pair> left, right;
+            left.reserve(split_point);
+            right.reserve(curr.size() - split_point);
+
+            for (size_t i = 0; i < curr.size(); ++i) {
+                if (i < split_point) {
+                    left.push_back(std::move(curr[i]));
+                } else {
+                    right.push_back(std::move(curr[i]));
+                }
+            }
+
+            work.push_front(std::move(right));
+            work.push_front(std::move(left));
         }
     }
 
@@ -369,6 +433,9 @@ public:
             for (const auto& ref : S0_blocks) delete_block(ref);
             for (const auto& ref : S1_blocks) delete_block(ref);
 
+            for (const auto& i : S) {
+                present_[i.key_->id_] = false;
+            }
             return {std::move(S), B_upper_};
         }
 
@@ -390,7 +457,7 @@ public:
         }
 
         // Now we know the smallest M elements must be contained in S′0 ∪ S′1 and can be identified from S′0 ∪ S′1 as S′ in O(M) time.
-        const auto m_th = candidates.begin() + static_cast<long>(M_);
+        const auto m_th = candidates.begin() + M_;
         std::ranges::nth_element(candidates, m_th,
                                  [](const Pair* a, const Pair* b) { return a->value_ < b->value_; });
 
@@ -414,7 +481,7 @@ public:
 
             // Fast removal by swapping
             if (key_pos.elem_idx <= block.elems_.size() - 1) {
-                block.elems_[key_pos.elem_idx] = block.elems_.back();
+                block.elems_[key_pos.elem_idx] = std::move(block.elems_.back());
                 const Vertex* moved_key = block.elems_[key_pos.elem_idx].key_;
                 key_poses_[moved_key->id_].elem_idx = key_pos.elem_idx;
             }
