@@ -18,6 +18,7 @@ BMSSP::BMSSP(Graph &graph, const Vertex *src) : graph_(graph), source_(src) {
     pivot_tree_sz_cache_.reserve(n_);
     dist_cache_.assign(n_, INF);
     execution_failed_ = false;
+    last_complete_level_.resize(n_, -1);
 }
 
 BMSSP::BMSSP(Graph &graph, const Vertex *src, const size_t k, const size_t t) : graph_(graph), source_(src), n_(graph.size()), k_(k), t_(t) {
@@ -25,10 +26,10 @@ BMSSP::BMSSP(Graph &graph, const Vertex *src, const size_t k, const size_t t) : 
     pivot_tree_sz_cache_.reserve(n_);
     dist_cache_.assign(n_, INF);
     execution_failed_ = false;
+    last_complete_level_.resize(n_, -1);
 }
 
 std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, const double B) const {
-    // with the help of https://github.com/lcs147/bmssp/blob/master/bmssp.hpp
 
     VertexSet W = S;
     VertexSet W_prev = S;
@@ -36,8 +37,10 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, const dou
     pivot_root_cache_.assign(n_, 0);
     pivot_tree_sz_cache_.assign(n_, 0);
 
+    std::vector<bool> pivot_visited_(n_, false);
     for (const auto& [u, du] : S) {
         pivot_root_cache_[u->id_] = u->id_;
+        pivot_visited_[u->id_] = true;
     }
 
     for (size_t i = 1; i <= k_; ++i) {
@@ -50,7 +53,10 @@ std::pair<VertexSet, VertexSet> BMSSP::find_pivots(const VertexSet &S, const dou
                     dist_cache_[v->id_] = cand;
                     if (dist_cache_[v->id_] < B) {
                         pivot_root_cache_[v->id_] = pivot_root_cache_[u->id_];
-                        Wi.emplace_back(v, cand);
+                        if (!pivot_visited_[v->id_]) {
+                            pivot_visited_[v->id_] = true;
+                            Wi.emplace_back(v, cand);
+                        }
                     }
                 }
             }
@@ -178,6 +184,7 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, const VertexSet &S) {
             std::cout << p.key_->id_ << ", ";
         std::cout << std::endl;
 
+        if (Si.empty()) break;
         auto [Bi_prime, Ui] = bmssp(l - 1, Bi, Si);
 
         std::cout << "Bi prime " << Bi_prime << " Complete v: ";
@@ -191,6 +198,7 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, const VertexSet &S) {
         VertexSet K;
         for (const auto& [u, du] : Ui) {
             D.erase(u);
+            last_complete_level_[u->id_] = l;
             for (const auto& [v_id, w_uv] : u->outgoing_edges_) {
                 const Vertex *v = graph_.get_vertex(v_id);
                 const double cand = du + w_uv;
@@ -205,11 +213,11 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, const VertexSet &S) {
             }
         }
         for (const auto& [x, dx] : Si) {
-            if (dx >= Bi_prime and dx < Bi) {
+            if (dx >= Bi_prime && dx < Bi) {
                 K.emplace_back(x, dx);
             }
         }
-        D.batch_prepend(K, Bi);
+        D.batch_prepend(K, Bi_prime);
         B_prime = Bi_prime;
     }
     if (execution_failed_) {
@@ -222,7 +230,8 @@ std::pair<double, VertexSet> BMSSP::bmssp(int l, double B, const VertexSet &S) {
 
 
     for (const auto& [vtx, dv] : W) {
-        if (dist_cache_[vtx->id_] < resB) {
+        if (last_complete_level_[vtx->id_] != l && dist_cache_[vtx->id_] < resB) {
+            last_complete_level_[vtx->id_] = l;
             U.emplace_back(vtx, dist_cache_[vtx->id_]);
         }
     }

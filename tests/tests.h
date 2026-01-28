@@ -11,6 +11,8 @@ namespace tests::dq {
     void erase_test();
 
     void run_all_tests();
+
+    void test_pull_bounds();
 }
 
 

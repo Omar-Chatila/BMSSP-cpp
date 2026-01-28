@@ -968,11 +968,50 @@ namespace tests::dq {
         std::cout << "\nAll erase tests passed!" << std::endl;
     }
 
+    void test_pull_bounds() {
+        std::cout << "Testing pull bounds..." << std::endl;
+
+        const size_t n = 100;
+        const size_t M = 4;
+        const double B = 1000;
+        DequeueBlocks dq(n, M, B);
+
+        // Insert values 0, 1, 2, ..., 9
+        std::vector<Vertex*> vertices;
+        for (int i = 0; i < 10; ++i) {
+            Vertex* v = new Vertex(i);
+            dq.insert(v, i * 1.0);
+            vertices.push_back(v);
+        }
+
+        // First pull: should get [0, 1, 2, 3], bound = 4.0
+        auto [pulled1, bound1] = dq.pull();
+        assert(pulled1.size() == 4);
+        assert(std::abs(bound1 - 4.0) < 1e-9);
+
+        // Second pull: should get [4, 5, 6, 7], bound = 8.0
+        auto [pulled2, bound2] = dq.pull();
+        assert(pulled2.size() == 4);
+        assert(std::abs(bound2 - 8.0) < 1e-9);
+
+        // Third pull: should get [8, 9], bound = B (since ≤ M elements left)
+        auto [pulled3, bound3] = dq.pull();
+        assert(pulled3.size() == 2);
+        assert(std::abs(bound3 - B) < 1e-9);
+
+        // Structure should be empty
+        assert(dq.empty());
+
+        for (auto v : vertices) delete v;
+        std::cout << "Pull bounds test passed!" << std::endl;
+    }
+
     void run_all_tests() {
         initialization_test();
         insert_test();
         batch_prepend_test();
         erase_test();
+        test_pull_bounds();
         std::cout << "\n############################\n";
         std::cout << "#### All Tests passed! #####\n";
         std::cout << "############################\n";

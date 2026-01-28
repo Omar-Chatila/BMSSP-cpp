@@ -4,9 +4,9 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
-#include <limits>
 #include <list>
 #include <map>
+#include <ranges>
 
 #include "Graph.h"
 
@@ -22,6 +22,7 @@ struct Pair {
     }
 
     Pair(const Vertex* k, const double v) : key_(k), value_(round_value(v)) {}
+    Pair() : key_(nullptr), value_(0) {}
 
     bool operator<(const Pair& o) const noexcept {
         if (value_ != o.value_) return value_ < o.value_;
@@ -161,6 +162,13 @@ class DequeueBlocks {
         return *mid;
     }
 
+    void finalize_block(const BlockRef& ref) {
+        update_key_pos_for_block(ref);
+        for (const auto& p : get_block(ref).elems_) {
+            present_[p.key_->id_] = true;
+        }
+    }
+
 public:
     // Initialize(M, B)
     explicit DequeueBlocks(const size_t N, const size_t M, const double B) : M_(M), B_upper_(B) {
@@ -278,21 +286,39 @@ public:
         delete_block(ref);
 
         // Update key positions
-        update_key_pos_for_block(left_ref);
-        update_key_pos_for_block(right_ref);
+        finalize_block(left_ref);
+        finalize_block(right_ref);
     }
 
     void batch_prepend(std::vector<Pair>& batch, const double b_upper) {
+        std::unordered_map<size_t, Pair> best;
+        for (auto& p : batch) {
+            auto id = p.key_->id_;
+            if (!best.contains(id) || p.value_ < best[id].value_) {
+                best[id] = std::move(p);
+            }
+        }
+        batch.clear();
+        for (auto &p: best | std::views::values) batch.push_back(p);
+
+        for (auto& p : batch) {
+            if (present_[p.key_->id_]) {
+                p.key_ = nullptr;
+            }
+        }
+        batch.erase(
+            std::ranges::remove_if(batch,
+                                   [](const Pair& p){ return p.key_ == nullptr; }).begin(),
+            batch.end()
+        );
+
         const size_t L = batch.size();
 
         if (L <= M_) {
             BlockRef ref = create_block(b_upper, BlockOwner::D0);
             Block& block = get_block(ref);
             block.elems_ = std::move(batch);
-            for (const auto& p : block.elems_) {
-                present_[p.key_->id_] = true;
-            }
-            update_key_pos_for_block(ref);
+            finalize_block(ref);
             return;
         }
 
@@ -308,7 +334,7 @@ public:
                 BlockRef ref = create_block(b_upper, BlockOwner::D0);
                 Block& block = get_block(ref);
                 block.elems_ = std::move(curr);
-                update_key_pos_for_block(ref);
+                finalize_block(ref);
                 continue;
             }
 
@@ -360,7 +386,7 @@ public:
                             BlockRef ref = create_block(b_upper, BlockOwner::D0);
                             Block& block = get_block(ref);
                             block.elems_ = std::move(lower);
-                            update_key_pos_for_block(ref);
+                            finalize_block(ref);
                         }
                         if (!upper.empty()) {
                             work.push_front(std::move(upper));
@@ -397,29 +423,24 @@ public:
     max(S′) < x ≤ min(D) where D is the set of elements in the data structure after the pull operation.
     */
     std::pair<std::vector<Pair>, double> pull() {
-        // To retrieve the smallest M values from D0 ∪ D1, we collect a sufficient prefix of blocks from D0 and D1 separately
         std::vector<BlockRef> S0_blocks, S1_blocks;
         size_t count0 = 0, count1 = 0;
 
-        /* That is, in D0 (D1) we start from the first block and stop collecting as long as we have collected all
-         * the remaining elements or the number of collected elements in S′0 (S′1) has reached M*/
-
-        // D0: take first blocks until M elements
-        for (auto it = D0_.begin(); it != D0_.end() && count0 < M_; ++it) {
+        // Collect blocks from D0
+        for (auto it = D0_.begin(); it != D0_.end() && count0 <= M_; ++it) {
             S0_blocks.push_back(BlockRef{it->block_id_, BlockOwner::D0});
             count0 += it->elems_.size();
         }
 
-        // D1: take blocks from tree in sorted order until M elements
-        for (auto it = D1_tree_.begin(); it != D1_tree_.end() && count1 < M_; ++it) {
+        // Collect blocks from D1 (sorted by upper bound)
+        for (auto it = D1_tree_.begin(); it != D1_tree_.end() && count1 <= M_; ++it) {
             S1_blocks.push_back(it->second);
             count1 += get_block(it->second).elems_.size();
         }
-        /* if S′0 ∪ S′1 contains no more than M elements, it must contain all blocks in D0 ∪ D1,
-         * so we return all elements in S′0 ∪ S′1 as S′ and set x to the upper bound B,*/
+
+        // Case 1: Total ≤ M elements
         if (count0 + count1 <= M_) {
             std::vector<Pair> S;
-            // Collect all elements: O(|S|)
             for (const auto& ref : S0_blocks) {
                 Block& block = get_block(ref);
                 S.insert(S.end(), block.elems_.begin(), block.elems_.end());
@@ -429,17 +450,19 @@ public:
                 S.insert(S.end(), block.elems_.begin(), block.elems_.end());
             }
 
-            // Delete all collected blocks
+            // Delete collected blocks
             for (const auto& ref : S0_blocks) delete_block(ref);
             for (const auto& ref : S1_blocks) delete_block(ref);
 
-            for (const auto& i : S) {
-                present_[i.key_->id_] = false;
+            // Mark as not present
+            for (const auto& p : S) {
+                present_[p.key_->id_] = false;
             }
-            return {std::move(S), B_upper_};
+
+            return {std::move(S), B_upper_};  // Bound = B when empty
         }
 
-        // Otherwise, we want to make |S′| = M, and because the block sizes are kept at most M, the collecting process takes O(M) time.
+        // Case 2: > M elements
         std::vector<const Pair*> candidates;
         candidates.reserve(count0 + count1);
 
@@ -456,31 +479,28 @@ public:
             }
         }
 
-        // Now we know the smallest M elements must be contained in S′0 ∪ S′1 and can be identified from S′0 ∪ S′1 as S′ in O(M) time.
+        // Find M-th smallest (0-indexed, so candidates[M_] is (M+1)-th)
         const auto m_th = candidates.begin() + M_;
         std::ranges::nth_element(candidates, m_th,
-                                 [](const Pair* a, const Pair* b) { return a->value_ < b->value_; });
+            [](const Pair* a, const Pair* b) { return a->value_ < b->value_; });
 
-
-        double x = std::numeric_limits<double>::infinity();
-        for (size_t i = M_; i < candidates.size(); ++i) {
-            x = std::min(x, candidates[i]->value_);
-        }
+        // The bound x should be the (M+1)-th smallest value
+        double x = candidates[M_]->value_;
 
         std::vector<Pair> result;
         result.reserve(M_);
 
+        // Collect and remove the M smallest elements
         for (size_t i = 0; i < M_; ++i) {
             const Pair* p = candidates[i];
             result.push_back(*p);
 
-            // Then we delete elements in S′ from D0 and D1, whose running time is amortized to insertion time
             const size_t key_id = p->key_->id_;
             const auto& key_pos = key_poses_[key_id];
             Block& block = get_block(key_pos.block_ref);
 
             // Fast removal by swapping
-            if (key_pos.elem_idx <= block.elems_.size() - 1) {
+            if (key_pos.elem_idx < block.elems_.size() - 1) {
                 block.elems_[key_pos.elem_idx] = std::move(block.elems_.back());
                 const Vertex* moved_key = block.elems_[key_pos.elem_idx].key_;
                 key_poses_[moved_key->id_].elem_idx = key_pos.elem_idx;
@@ -493,7 +513,7 @@ public:
                 delete_block(key_pos.block_ref);
             }
         }
-        // Set returned value x to the smallest remaining value in D0 ∪ D1
+
         return {std::move(result), x};
     }
 

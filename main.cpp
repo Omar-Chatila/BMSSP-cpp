@@ -50,7 +50,7 @@ void fib_heap_demo() {
 }
 
 void block_list_demo() {
-    constexpr int n = 1000;
+    constexpr int n = 10000;
     DequeueBlocks D(n, 100, 120);
     std::vector<Vertex*> vertices;
     vertices.reserve(n);
@@ -63,7 +63,7 @@ void block_list_demo() {
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> distrib(min, max);
 
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < 10000; ++i) {
         const int randomValue = distrib(gen);
         std::cout << randomValue << std::endl;
         vertices.push_back(new Vertex(i));
@@ -152,7 +152,7 @@ auto get_undirected_example() {
 void dijkstra_vs_bmssp_demo(GraphType type) {
     auto [g, src] = type == GraphType::DIRECTED ? get_directed_example() : get_undirected_example();
     std::cout << "Dijkstra: " << "\n";
-    constexpr int iterations = 1000;
+    constexpr int iterations = 10000;
 
     long dijkstra_time = 0;
     for (int i = 0; i < iterations; ++i) {
@@ -224,6 +224,7 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
     std::cout << "Total run time avg over " << n << " runs: " << static_cast<double>(total) / n << " us";
 }
 int main() {
+    tests::dq::test_pull_bounds();
     // Graph g(GraphType::DIRECTED);
     // for (int i = 0; i <= 5; ++i) {
     //     g.add_vertex(i);
@@ -239,7 +240,45 @@ int main() {
     //  g.add_edge(5, 3, 1);
     //
     // const Vertex* src = g.get_vertex(0);
-    auto [g, src] = get_directed_example();
+    Graph g(GraphType::DIRECTED);
+
+    for (int i = 0; i <= 11; ++i) {
+        g.add_vertex(i);
+    }
+
+    srand(0);
+
+    g.add_edge(0, 1, 2 + (double)(rand() % 10000) / 1E8);
+    g.add_edge(0, 2, 2 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(0, 3, 3 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(1, 4, 2 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(1, 5, 3 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(2, 5, 2 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(2, 6, 3 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(3, 4, 1 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(3, 6, 2 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(4, 7, 2 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(4, 8, 3 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(5, 8, 2 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(5, 9, 3 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(6, 8, 1 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(6, 9, 2 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(6, 10, 3 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(7, 10, 2 +  (double)(rand() % 10000) / 1E8);
+    g.add_edge(7, 11, 3 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(8, 11, 2 +  (double)(rand() % 10000) / 1E8);
+
+    g.add_edge(9, 11, 1 +  (double)(rand() % 10000) / 1E8);
+
+    const Vertex* src = g.get_vertex(0);
     BMSSP bmssp(g, src);
     auto res = bmssp.run();
 

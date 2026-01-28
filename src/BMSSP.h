@@ -17,6 +17,7 @@ private:
     mutable std::vector<uint64_t> pivot_root_cache_;
     mutable std::vector<size_t> pivot_tree_sz_cache_;
     mutable std::vector<double> dist_cache_;
+    mutable std::vector<int> last_complete_level_;
 
     bool execution_failed_;
 
