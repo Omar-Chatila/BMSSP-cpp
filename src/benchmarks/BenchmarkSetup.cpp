@@ -11,11 +11,11 @@ constexpr int N_END_EXP = 17;
 constexpr int DEG_START_EXP = 1;
 constexpr int DEG_END_EXP = 6;
 
-static const int N_START = std::pow(2,N_START_EXP);
-static const int N_END = std::pow(2,N_END_EXP);
+static const int N_START = static_cast<int>(std::pow(2, N_START_EXP));
+static const int N_END = static_cast<int>(std::pow(2, N_END_EXP));
 
-static const int DEG_START = std::pow(2, DEG_START_EXP);
-static const int DEG_END = std::pow(2, DEG_END_EXP);
+static const int DEG_START = static_cast<int>(std::pow(2, DEG_START_EXP));
+static const int DEG_END = static_cast<int>(std::pow(2, DEG_END_EXP));
 
 static constexpr int NUM_SRCS = 10;
 static constexpr int ITERATIONS = 10;
