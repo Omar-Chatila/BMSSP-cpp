@@ -37,7 +37,9 @@ private:
 public:
     explicit Dijkstra(Graph& graph, const Vertex* src);
 
-    [[nodiscard]] std::vector<double> run() const;
+    [[nodiscard]] std::vector<double> fib_heap_run() const;
+
+    [[nodiscard]] std::vector<double> std_heap_run() const;
 };
 
 

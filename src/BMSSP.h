@@ -6,7 +6,6 @@
 using VertexSet = std::vector<Pair>;
 
 class BMSSP {
-private:
     Graph& graph_;
     const Vertex* source_;
 
@@ -19,20 +18,16 @@ private:
     mutable std::vector<double> dist_cache_;
     mutable std::vector<int> last_complete_level_;
 
-    bool execution_failed_;
-
     [[nodiscard]]
     std::pair<VertexSet, VertexSet> find_pivots(const VertexSet& S, double B) const;
 
-    std::pair<double, VertexSet> base_case(const Pair &S, double B) const;
+    std::pair<double, VertexSet> base_case(const Pair& S, double B) const;
 
     std::pair<double, VertexSet> bmssp(int l, double B, const VertexSet& S);
 public:
     BMSSP(Graph& graph, const Vertex* src);
 
     BMSSP(Graph& graph, const Vertex* src, size_t k, size_t t);
-
-    bool has_exec_failed() const;
 
     std::vector<double> run();
 };

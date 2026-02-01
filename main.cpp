@@ -158,7 +158,7 @@ void dijkstra_vs_bmssp_demo(GraphType type) {
     for (int i = 0; i < iterations; ++i) {
         auto begin = std::chrono::steady_clock::now();
         Dijkstra dijkstra(g, src);
-        auto vertex_dists_dijkstra = dijkstra.run();
+        auto vertex_dists_dijkstra = dijkstra.fib_heap_run();
         auto end = std::chrono::steady_clock::now();
         auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
         dijkstra_time += time;
@@ -166,7 +166,7 @@ void dijkstra_vs_bmssp_demo(GraphType type) {
     dijkstra_time /= iterations;
 
     const Dijkstra dijkstra(g, src);
-    const auto vertex_dists_dijkstra = dijkstra.run();
+    const auto vertex_dists_dijkstra = dijkstra.fib_heap_run();
     for (size_t i = 0; i < vertex_dists_dijkstra.size(); ++i) {
         std::cout << "Shortest path from " << src->id_ << " to " << i << " is " << vertex_dists_dijkstra[i] << "\n";
     }
@@ -197,7 +197,7 @@ void time_dijkstra(Graph& g, const std::vector<const Vertex*>& srcs) {
     for (const Vertex* src : srcs) {
         auto begin = std::chrono::steady_clock::now();
         Dijkstra dijkstra(g, src);
-        auto vertex_dists_dijkstra = dijkstra.run();
+        auto vertex_dists_dijkstra = dijkstra.fib_heap_run();
         auto end = std::chrono::steady_clock::now();
         const auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
         total += time;
@@ -212,79 +212,101 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
         //BMSSP bmssp(g, src, 8, 3);
         auto begin = std::chrono::steady_clock::now();
         BMSSP bmssp(g, src);
-        auto vertex_dists_dijkstra = bmssp.run();
+        auto vertex_dists_bmssp = bmssp.run();
         auto end = std::chrono::steady_clock::now();
-        auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-        if (bmssp.has_exec_failed()) {
-            std::cout << "execution failed\n";
-        }
+        const auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
         total += time;
     }
     const size_t n = srcs.size();
     std::cout << "Total run time avg over " << n << " runs: " << static_cast<double>(total) / n << " us";
 }
-int main() {
+int main(int argc, char** argv) {
+    run_benchmarks(argc, argv);
+    return 0;
     tests::dq::test_pull_bounds();
-    // Graph g(GraphType::DIRECTED);
-    // for (int i = 0; i <= 5; ++i) {
-    //     g.add_vertex(i);
-    // }
-    //
-    //  g.add_edge(0, 1, 3);
-    //  g.add_edge(0, 2, 1);
-    //  g.add_edge(1, 2, 2);
-    //  g.add_edge(1, 3, 3);
-    //  g.add_edge(1, 4, 6);
-    //  g.add_edge(2, 4, 2);
-    //  g.add_edge(4, 5, 1);
-    //  g.add_edge(5, 3, 1);
-    //
-    // const Vertex* src = g.get_vertex(0);
-    Graph g(GraphType::DIRECTED);
+    {
+        Graph g(GraphType::DIRECTED);
+        for (int i = 0; i <= 5; ++i) {
+            g.add_vertex(i);
+        }
 
-    for (int i = 0; i <= 11; ++i) {
-        g.add_vertex(i);
+        g.add_edge(0, 1, 3);
+        g.add_edge(0, 2, 1);
+        g.add_edge(1, 2, 2);
+        g.add_edge(1, 3, 3);
+        g.add_edge(1, 4, 6);
+        g.add_edge(2, 4, 2);
+        g.add_edge(4, 5, 1);
+        g.add_edge(5, 3, 1);
+
+        const Vertex* src = g.get_vertex(0);
+        BMSSP bmssp(g, src);
+        const auto res = bmssp.run();
+        std::cout << res.size() << std::endl;
+
+        int vertex = 0;
+        for (const auto i : res) {
+            std::cout << vertex++ << ": " << i << std::setprecision(4) << std::endl;
+        }
     }
+    std::cout << "---------------------------------" << std::endl;
+    {
+        Graph g(GraphType::DIRECTED);
+        for (int i = 0; i <= 11; ++i) {
+            g.add_vertex(i);
+        }
 
-    srand(0);
+        srand(0);
 
-    g.add_edge(0, 1, 2 + (double)(rand() % 10000) / 1E8);
-    g.add_edge(0, 2, 2 +  (double)(rand() % 10000) / 1E8);
-    g.add_edge(0, 3, 3 +  (double)(rand() % 10000) / 1E8);
+        g.add_edge(0, 1, 2);
+        g.add_edge(0, 2, 2);
+        g.add_edge(0, 3, 3);
 
-    g.add_edge(1, 4, 2 +  (double)(rand() % 10000) / 1E8);
-    g.add_edge(1, 5, 3 +  (double)(rand() % 10000) / 1E8);
+        g.add_edge(1, 4, 2);
+        g.add_edge(1, 5, 3);
 
-    g.add_edge(2, 5, 2 +  (double)(rand() % 10000) / 1E8);
-    g.add_edge(2, 6, 3 +  (double)(rand() % 10000) / 1E8);
+        g.add_edge(2, 5, 2);
+        g.add_edge(2, 6, 3);
 
-    g.add_edge(3, 4, 1 +  (double)(rand() % 10000) / 1E8);
-    g.add_edge(3, 6, 2 +  (double)(rand() % 10000) / 1E8);
+        g.add_edge(3, 4, 1);
+        g.add_edge(3, 6, 2);
 
-    g.add_edge(4, 7, 2 +  (double)(rand() % 10000) / 1E8);
-    g.add_edge(4, 8, 3 +  (double)(rand() % 10000) / 1E8);
+        g.add_edge(4, 7, 2);
+        g.add_edge(4, 8, 3);
 
-    g.add_edge(5, 8, 2 +  (double)(rand() % 10000) / 1E8);
-    g.add_edge(5, 9, 3 +  (double)(rand() % 10000) / 1E8);
+        g.add_edge(5, 8, 2);
+        g.add_edge(5, 9, 3);
 
-    g.add_edge(6, 8, 1 +  (double)(rand() % 10000) / 1E8);
-    g.add_edge(6, 9, 2 +  (double)(rand() % 10000) / 1E8);
-    g.add_edge(6, 10, 3 +  (double)(rand() % 10000) / 1E8);
+        g.add_edge(6, 8, 1);
+        g.add_edge(6, 9, 2);
+        g.add_edge(6, 10, 3);
 
-    g.add_edge(7, 10, 2 +  (double)(rand() % 10000) / 1E8);
-    g.add_edge(7, 11, 3 +  (double)(rand() % 10000) / 1E8);
+        g.add_edge(7, 10, 2);
+        g.add_edge(7, 11, 3);
 
-    g.add_edge(8, 11, 2 +  (double)(rand() % 10000) / 1E8);
+        g.add_edge(8, 11, 2);
 
-    g.add_edge(9, 11, 1 +  (double)(rand() % 10000) / 1E8);
+        g.add_edge(9, 11, 1);
 
-    const Vertex* src = g.get_vertex(0);
-    BMSSP bmssp(g, src);
-    const auto res = bmssp.run();
+        const Vertex* src = g.get_vertex(0);
+        BMSSP bmssp(g, src);
+        const auto res = bmssp.run();
+        std::cout << res.size() << std::endl;
 
-    for (auto i : res) {
-        std::cout << i << std::endl;
+        int vertex = 0;
+        for (const auto i : res) {
+            std::cout << vertex++ << ": " << i << std::setprecision(4) << std::endl;
+        }
     }
+    auto graph = graph_from_csv("/home/omar/CLionProjects/algo_seminar/resources/benchmarks/directed_128_4", GraphType::DIRECTED);
+    auto srcs = get_start_vertices(graph, 1);
+    std::cout << srcs.size() << std::endl;
+    std::cout << "start dijkstra runs\n";
+    time_dijkstra(graph, srcs);
+    std::cout << "start bmssp runs\n";
+    time_bmssp(graph, srcs);
+
+    return 0;
 
     // const Vertex* s1 = src;
     // const Vertex* s2 = g.get_vertex(1);
@@ -299,14 +321,6 @@ int main() {
     // }
     // return 0;
     // run_benchmarks();
-    // return 0;
-    // auto graph = graph_from_csv("/home/omar/CLionProjects/algo_seminar/resources/benchmarks/undirected_4096_2", GraphType::UNDIRECTED);
-    // auto srcs = get_start_vertices(graph, 1);
-    // std::cout << srcs.size() << std::endl;
-    // //std::cout << "start dijkstra runs\n";
-    // //time_dijkstra(graph, srcs);
-    // std::cout << "start bmssp runs\n";
-    // time_bmssp(graph, srcs);
     // return 0;
 }
 

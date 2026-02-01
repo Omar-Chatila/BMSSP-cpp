@@ -28,6 +28,11 @@ struct Pair {
         if (value_ != o.value_) return value_ < o.value_;
         return key_->id_ < o.key_->id_;
     }
+
+    bool operator>(const Pair& o) const noexcept {
+        if (value_ != o.value_) return value_ > o.value_;
+        return key_->id_ > o.key_->id_;
+    }
 };
 
 enum class BlockOwner {D0, D1};
@@ -82,7 +87,6 @@ class DequeueBlocks {
     size_t next_block_id_ = 0;
 
     // helper methods
-
     // get D0 or D1 depending on owner
     std::list<Block>& get_deque(const BlockOwner owner) {
         return owner == BlockOwner::D0 ? D0_ : D1_;
@@ -236,7 +240,7 @@ public:
         Block& block = get_block(block_ref);
         // Fast removal: swap with last element
         if (elem_idx != block.elems_.size() - 1) {
-            block.elems_[elem_idx] = std::move(block.elems_.back());
+            block.elems_[elem_idx] = block.elems_.back();
 
             // Update position of the moved element
             const Vertex* moved_key = block.elems_[elem_idx].key_;
@@ -276,9 +280,9 @@ public:
         // Partition using the median pair for comparison
         for (auto& p : block.elems_) {
             if (p < median_pair) {  // Use operator< which compares value AND key
-                left_block.elems_.push_back(std::move(p));
+                left_block.elems_.push_back(p);
             } else {
-                right_block.elems_.push_back(std::move(p));
+                right_block.elems_.push_back(p);
             }
         }
 
@@ -295,7 +299,7 @@ public:
         for (auto& p : batch) {
             auto id = p.key_->id_;
             if (!best.contains(id) || p.value_ < best[id].value_) {
-                best[id] = std::move(p);
+                best[id] = p;
             }
         }
         batch.clear();
@@ -338,7 +342,7 @@ public:
                 continue;
             }
 
-            // Find median PAIR (not just value)
+            // Find median pair
             Pair median_pair = find_median_pair(curr);
 
             // Three-way partition
@@ -346,17 +350,14 @@ public:
 
             for (auto& p : curr) {
                 if (p < median_pair) {
-                    lower.push_back(std::move(p));
+                    lower.push_back(p);
                 } else if (median_pair < p) {
-                    upper.push_back(std::move(p));
+                    upper.push_back(p);
                 } else {
                     // p == median_pair (same value AND same key id)
-                    equal.push_back(std::move(p));
+                    equal.push_back(p);
                 }
             }
-
-            // Now we need to distribute elements to ensure both partitions are non-empty
-            // and each has at most `target` elements
 
             // Case 1: Both lower and upper are non-empty
             if (!lower.empty() && !upper.empty()) {
@@ -367,12 +368,12 @@ public:
                 if (total_lower > target || total_upper > target) {
                     // Need to move some equal elements to upper
                     while (lower.size() < target && !equal.empty()) {
-                        lower.push_back(std::move(equal.back()));
+                        lower.push_back(equal.back());
                         equal.pop_back();
                     }
                     // Remaining equal goes to upper
                     for (auto& p : equal) {
-                        upper.push_back(std::move(p));
+                        upper.push_back(p);
                     }
                     equal.clear();
 
@@ -405,9 +406,9 @@ public:
 
             for (size_t i = 0; i < curr.size(); ++i) {
                 if (i < split_point) {
-                    left.push_back(std::move(curr[i]));
+                    left.push_back(curr[i]);
                 } else {
-                    right.push_back(std::move(curr[i]));
+                    right.push_back(curr[i]);
                 }
             }
 
@@ -428,14 +429,23 @@ public:
 
         // Collect blocks from D0
         for (auto it = D0_.begin(); it != D0_.end() && count0 <= M_; ++it) {
+            if (it->elems_.empty()) continue;
             S0_blocks.push_back(BlockRef{it->block_id_, BlockOwner::D0});
             count0 += it->elems_.size();
         }
 
         // Collect blocks from D1 (sorted by upper bound)
         for (auto it = D1_tree_.begin(); it != D1_tree_.end() && count1 <= M_; ++it) {
+            Block& block = get_block(it->second);
+            if (block.elems_.empty()) continue;
             S1_blocks.push_back(it->second);
             count1 += get_block(it->second).elems_.size();
+        }
+
+        if (count0 + count1 == 0) {
+            D0_.clear();
+            D1_.clear();
+            return {{}, 0};
         }
 
         // Case 1: Total ≤ M elements
@@ -501,7 +511,7 @@ public:
 
             // Fast removal by swapping
             if (key_pos.elem_idx < block.elems_.size() - 1) {
-                block.elems_[key_pos.elem_idx] = std::move(block.elems_.back());
+                block.elems_[key_pos.elem_idx] = block.elems_.back();
                 const Vertex* moved_key = block.elems_[key_pos.elem_idx].key_;
                 key_poses_[moved_key->id_].elem_idx = key_pos.elem_idx;
             }
@@ -527,7 +537,6 @@ public:
         return count;
     }
 
-    // TEST HELPER
     // Test helper: Check if vertex is present
     bool contains(const Vertex* v) const {
         size_t id = v->id_;

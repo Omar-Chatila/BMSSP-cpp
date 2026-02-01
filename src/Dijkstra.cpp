@@ -1,9 +1,13 @@
 #include "Dijkstra.h"
+
+#include <queue>
+
+#include "BlockLinkedList.h"
 #include "FibHeap.h"
 
 Dijkstra::Dijkstra(Graph& graph, const Vertex* src) : graph_(graph), source_(src) {}
 
-std::vector<double> Dijkstra::run() const {
+std::vector<double> Dijkstra::fib_heap_run() const {
     const size_t n = graph_.size();
     auto& vertices = graph_.get_vertices();
     std::vector<DijkstraState> states_(n);
@@ -50,4 +54,46 @@ std::vector<double> Dijkstra::run() const {
         result[i] = states_[i].dist_;
 
     return result;
+}
+
+std::vector<double> Dijkstra::std_heap_run() const {
+    const size_t n = graph_.size();
+
+    std::vector<double> dist(n, std::numeric_limits<double>::infinity());
+    std::vector<bool> finalized(n, false);
+
+    dist[source_->id_] = 0.0;
+
+    std::priority_queue<
+        Pair,
+        std::vector<Pair>,
+        std::greater<>
+    > pq;
+
+    pq.emplace(source_, 0.0);
+
+    while (!pq.empty()) {
+        auto [u, dist_u] = pq.top();
+        pq.pop();
+
+        // Lazy deletion
+        if (finalized[u->id_])
+            continue;
+
+        finalized[u->id_] = true;
+
+        for (const auto& [v_id, w_uv] : u->outgoing_edges_) {
+            const Vertex* v = graph_.get_vertex(v_id);
+            if (finalized[v_id])
+                continue;
+
+            const double cand = dist_u + w_uv;
+            if (cand < dist[v_id]) {
+                dist[v_id] = cand;
+                pq.emplace(v, cand);
+            }
+        }
+    }
+
+    return dist;
 }
