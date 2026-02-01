@@ -13,7 +13,7 @@
 inline std::vector<std::vector<std::string>> undirected_csv;
 inline std::vector<std::vector<std::string>> directed_csv;
 
-int run_benchmarks();
+int run_benchmarks(int argc, char** argv);
 
 
 inline bool file_exists(const std::string& name) {
@@ -41,7 +41,7 @@ create_graph_csvs(const int n_start, const int n_end, const int deg_start, const
         const auto nodes = static_cast<size_t>(std::pow(2, n));
         for (int d = deg_start; d <= deg_end; ++d) {
             if (n >= 23 && d == 3) return;
-            const size_t deg = static_cast<size_t>(std::pow(2, d));
+            const auto deg = static_cast<size_t>(std::pow(2, d));
 
             const std::string graph_name = std::string(type == GraphType::DIRECTED ? "directed_" : "undirected_") + std::to_string(nodes) + "_" + std::to_string(deg);
             auto file_name = "../resources/benchmarks/" + graph_name;

@@ -1,6 +1,10 @@
 #include "Graph.h"
 
-Graph::Graph(const GraphType type) : type_(type) {}
+#include <cstdlib>
+
+Graph::Graph(const GraphType type) : type_(type) {
+    srand(0);
+}
 
 void Graph::add_vertex(const uint64_t id) {
     if (id < id_map_.size())
@@ -12,12 +16,13 @@ void Graph::add_vertex(const uint64_t id) {
 
 void Graph::add_edge(const uint64_t from_id, const uint64_t to_id, const double weight) {
     Vertex* v = id_map_.at(from_id);
+    const double dirt =  static_cast<double>(rand() % 10000) / 1E8;
     if (type_ == GraphType::DIRECTED) {
-        v->outgoing_edges_.emplace_back(to_id, weight);
+        v->outgoing_edges_.emplace_back(to_id, weight + dirt);
     } else {
         Vertex* u = id_map_.at(to_id);
-        v->outgoing_edges_.emplace_back(to_id, weight);
-        u->outgoing_edges_.emplace_back(from_id, weight);
+        v->outgoing_edges_.emplace_back(to_id, weight + dirt);
+        u->outgoing_edges_.emplace_back(from_id, weight + dirt);
     }
     ++num_edges_;
 }
