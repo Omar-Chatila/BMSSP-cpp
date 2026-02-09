@@ -445,7 +445,7 @@ public:
         if (count0 + count1 == 0) {
             D0_.clear();
             D1_.clear();
-            return {{}, 0};
+            return {{}, B_upper_};
         }
 
         // Case 1: Total ≤ M elements

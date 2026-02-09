@@ -10,7 +10,6 @@
 #include "Graph.h"
 #include "GraphFactory.h"
 #include "benchmarks/BenchmarkSetup.h"
-#include "tests/tests.h"
 
 
 /*
@@ -241,7 +240,6 @@ void time_bmssp(Graph& g, const std::vector<const Vertex*>& srcs) {
 int main(int argc, char** argv) {
     run_benchmarks(argc, argv);
     return 0;
-    tests::dq::test_pull_bounds();
     {
         Graph g(GraphType::DIRECTED);
         for (int i = 0; i <= 5; ++i) {

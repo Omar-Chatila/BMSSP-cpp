@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 project(algo_seminar LANGUAGES CXX)
-
+include(CTest)
 # ======================
 # Language standard
 # ======================
@@ -35,7 +35,6 @@ target_sources(algo_seminar INTERFACE
         src/BMSSP.cpp
         src/benchmarks/BenchmarkSetup.cpp
 
-        tests/BlocksDQTest.cpp
 )
 
 # ======================
@@ -55,6 +54,13 @@ endif()
 # ======================
 add_executable(algo_seminar_main main.cpp)
 target_link_libraries(algo_seminar_main PRIVATE algo_seminar)
+
+# Tests
+enable_testing()
+if (BUILD_TESTING)
+    message(STATUS "BUILD_TESTING = ${BUILD_TESTING}")
+    add_subdirectory(tests)
+endif ()
 
 # ======================
 # Doxygen (optional)
