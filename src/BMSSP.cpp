@@ -117,7 +117,7 @@ std::pair<double, VertexSet> BMSSP::base_case(const Pair& S, const double B) con
     double B_new = dist_cache_[U.back().key_->id_];
     U.pop_back();
 
-    return {B_new, U};
+    return {B_new, std::move(U)};
 }
 
 std::pair<double, VertexSet> BMSSP::bmssp(const int l, const double B, const VertexSet& S) {
@@ -139,7 +139,7 @@ std::pair<double, VertexSet> BMSSP::bmssp(const int l, const double B, const Ver
     const auto cap = static_cast<size_t>(std::pow(2, l * t_));
     U.reserve(W.size() + cap);
 
-    while (U.size() < cap and !D.empty()) {
+    while (U.size() < cap and not D.empty()) {
         auto [Si, Bi] = D.pull();
         if (Si.empty()) break;
 
@@ -189,7 +189,7 @@ std::vector<double> BMSSP::run() {
 
     const VertexSet S = {{source_, 0.0}};
     constexpr double B = INF;
-    dist_cache_[0] = 0;
+    dist_cache_[source_->id_] = 0;
 
     bmssp(l, B, S);
 
